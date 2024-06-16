@@ -5,10 +5,10 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 
 export default defineConfig({
   root: __dirname,
-  cacheDir: '../../node_modules/.vite/apps/auto-harvest',
+  cacheDir: '../../../node_modules/.vite/apps/auto-harvest',
 
   server: {
-    port: 4200,
+    port: 80,
     host: 'localhost',
   },
 
@@ -17,7 +17,7 @@ export default defineConfig({
     host: 'localhost',
   },
 
-  plugins: [react(), nxViteTsPaths()],
+  plugins: [react(), nxViteTsPaths()],  
 
   // Uncomment this if you are using workers.
   // worker: {
@@ -25,7 +25,7 @@ export default defineConfig({
   // },
 
   build: {
-    outDir: '../../dist/apps/auto-harvest',
+    outDir: '../../../dist/apps/auto-harvest',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {
