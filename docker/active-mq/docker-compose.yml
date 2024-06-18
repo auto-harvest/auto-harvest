@@ -1,0 +1,8 @@
+version: '3'
+services:
+  activemq:
+    image: rmohr/activemq
+    ports:
+      - "3009:61616"
+      - "3010:8161"
+      - "3011:1883"

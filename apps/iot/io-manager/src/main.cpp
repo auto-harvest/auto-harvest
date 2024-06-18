@@ -1,25 +1,22 @@
-/*
- WiFiEsp example: ScanNetworks
+#include <SPI.h>
+#include <WiFiEspClient.h>
+#include <WiFiEsp.h>
+#include <WiFiEspUdp.h>
+#include <PubSubClient.h>
 
- This example  prints the Wifi shield's MAC address, and
- scans for available Wifi networks using the Wifi shield.
- Every ten seconds, it scans again. It doesn't actually
- connect to any network, so no encryption scheme is specified.
+void reconnect();
+void publishMessage(const char *topic, const char *message);
 
- For more details see: http://yaab-arduino.blogspot.com/p/wifiesp.html
-*/
+const char *ssid = "COVID_19_5G_Hotspot_#421";
+const char *password = "denkserw";
+const char *mqtt_server = "192.168.100.3";
 
-#include "WiFiEsp.h"
-void printMacAddress();
-void listNetworks();
-void printEncryptionType(int thisType);
-// Emulate Serial1 on pins 6/7 if not present
-#ifndef HAVE_HWSERIAL1
-#include "SoftwareSerial.h"
-SoftwareSerial Serial1(6, 7); // RX, TX
-#endif
+int status = WL_IDLE_STATUS; // the Wifi radio's status
+WiFiEspClient espClient;
+PubSubClient client(espClient);
 
-void setup() {
+void setup()
+{
   // initialize serial for debugging
   Serial.begin(115200);
   // initialize serial for ESP module
@@ -28,83 +25,115 @@ void setup() {
   WiFi.init(&Serial1);
 
   // check for the presence of the shield
-  if (WiFi.status() == WL_NO_SHIELD) {
+  if (WiFi.status() == WL_NO_SHIELD)
+  {
     Serial.println("WiFi shield not present");
     // don't continue
-    while (true);
+    while (true)
+      ;
   }
 
-  // Print WiFi MAC address
-  printMacAddress();
+  // attempt to connect to WiFi network
+  while (status != WL_CONNECTED)
+  {
+    Serial.print("Attempting to connect to WPA SSID: ");
+    Serial.println(ssid);
+    // Connect to WPA/WPA2 network
+    status = WiFi.begin(ssid, password);
+  }
+
+  // you're connected now, so print out the data
+  Serial.println("You're connected to the network");
+
+  client.setServer(mqtt_server, 3011);
 }
 
 void loop()
 {
-  // scan for existing networks
-  Serial.println();
-  Serial.println("Scanning available networks...");
-  listNetworks();
-  delay(10000);
+  if (!client.connected())
+  {
+    reconnect();
+  }
+  client.loop();
 }
 
-
-void printMacAddress()
+void reconnect()
 {
-  // get your MAC address
-  byte mac[6];
-  WiFi.macAddress(mac);
-  
-  // print MAC address
-  char buf[20];
-  sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X", mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]);
-  Serial.print("MAC address: ");
-  Serial.println(buf);
+  // Loop until we're reconnected
+  while (!client.connected())
+  {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP8266Client"))
+    {
+      Serial.println("connected");
+      while (true)
+      {
+        delay(500);
+        publishMessage("my/topic", "Hello, world!");
+      }
+    }
+    else
+    {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
 }
 
-void listNetworks()
+void publishMessage(const char *topic, const char *message)
 {
-  // scan for nearby networks
-  int numSsid = WiFi.scanNetworks();
-  if (numSsid == -1) {
-    Serial.println("Couldn't get a wifi connection");
-    while (true);
+  int retryCount = 0;
+  const int maxRetries = 3;
+
+  while (retryCount < maxRetries)
+  {
+    if (client.connected())
+    {
+      if (client.publish(topic, message))
+      {
+        Serial.println("Message published successfully");
+        break;
+      }
+      else
+      {
+        Serial.println("Message publishing failed, retrying...");
+        retryCount++;
+      }
+    }
+    else
+    {
+      Serial.println("Not connected to MQTT server, attempting to reconnect...");
+      // Attempt to reconnect to the WiFi network here
+      // Replace "ssid" and "password" with your actual WiFi credentials
+      if (WiFi.begin(ssid, password) == WL_CONNECTED)
+      {
+        Serial.println("Reconnected to WiFi network");
+        // Now attempt to reconnect to the MQTT server
+        // Replace "mqtt_server" with your actual MQTT server
+        if (client.connect("mqtt_server"))
+        {
+          Serial.println("Reconnected to MQTT server");
+        }
+        else
+        {
+          Serial.println("Failed to reconnect to MQTT server, retrying...");
+          retryCount++;
+        }
+      }
+      else
+      {
+        Serial.println("Failed to reconnect to WiFi network, retrying...");
+        retryCount++;
+      }
+    }
   }
 
-  // print the list of networks seen
-  Serial.print("Number of available networks:");
-  Serial.println(numSsid);
-
-  // print the network number and name for each network found
-  for (int thisNet = 0; thisNet < numSsid; thisNet++) {
-    Serial.print(thisNet);
-    Serial.print(") ");
-    Serial.print(WiFi.SSID(thisNet));
-    Serial.print("\tSignal: ");
-    Serial.print(WiFi.RSSI(thisNet));
-    Serial.print(" dBm");
-    Serial.print("\tEncryption: ");
-    printEncryptionType(WiFi.encryptionType(thisNet));
+  if (retryCount == maxRetries)
+  {
+    Serial.println("Failed to publish message after " + String(maxRetries) + " attempts");
   }
-}
-
-void printEncryptionType(int thisType) {
-  // read the encryption type and print out the name
-  switch (thisType) {
-    case ENC_TYPE_WEP:
-      Serial.print("WEP");
-      break;
-    case ENC_TYPE_WPA_PSK:
-      Serial.print("WPA_PSK");
-      break;
-    case ENC_TYPE_WPA2_PSK:
-      Serial.print("WPA2_PSK");
-      break;
-    case ENC_TYPE_WPA_WPA2_PSK:
-      Serial.print("WPA_WPA2_PSK");
-      break;
-    case ENC_TYPE_NONE:
-      Serial.print("None");
-      break;
-  }
-  Serial.println();
 }
