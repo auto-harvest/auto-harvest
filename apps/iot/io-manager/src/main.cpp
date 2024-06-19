@@ -70,7 +70,7 @@ void reconnect()
       while (true)
       {
         delay(500);
-        publishMessage("my/topic", "Hello, world!");
+        publishMessage("my/topic", getTemperature());
       }
     }
     else
@@ -108,12 +108,10 @@ void publishMessage(const char *topic, const char *message)
     {
       Serial.println("Not connected to MQTT server, attempting to reconnect...");
       // Attempt to reconnect to the WiFi network here
-      // Replace "ssid" and "password" with your actual WiFi credentials
       if (WiFi.begin(ssid, password) == WL_CONNECTED)
       {
         Serial.println("Reconnected to WiFi network");
         // Now attempt to reconnect to the MQTT server
-        // Replace "mqtt_server" with your actual MQTT server
         if (client.connect("mqtt_server"))
         {
           Serial.println("Reconnected to MQTT server");

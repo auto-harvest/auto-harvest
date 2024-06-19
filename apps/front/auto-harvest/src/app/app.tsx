@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 import NxWelcome from './nx-welcome';
 import WebSocketComponent from '../components/websocket.component';
+import SensorDataComponent from '../components/sensor.component';
 
 const StyledApp = styled.div`
   // Your style here
@@ -10,9 +11,8 @@ const StyledApp = styled.div`
 export function App() {
   return (
     <StyledApp>
-      <NxWelcome title="auto-harvest" />
-      <WebSocketComponent></WebSocketComponent>
-    </StyledApp> 
+      <SensorDataComponent></SensorDataComponent>
+    </StyledApp>
   );
 }
 
