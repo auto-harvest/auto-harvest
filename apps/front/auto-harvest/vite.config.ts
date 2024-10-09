@@ -9,7 +9,7 @@ export default defineConfig({
 
   server: {
     port: 80,
-    host: 'localhost',
+    host: '192.168.100.3',
   },
 
   preview: {

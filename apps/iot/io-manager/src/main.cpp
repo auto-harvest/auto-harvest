@@ -3,11 +3,24 @@
 #include <WiFiEsp.h>
 #include <WiFiEspUdp.h>
 #include <PubSubClient.h>
+#include <DS18B20.h>
+#include <ArduinoJson.h>
+#include <DHT.h>
+#include <DHT_U.h>
+#define DHTPIN 3     // Pin which is connected to the DHT sensor
+#define DHTTYPE DHT11   // DHT 11
+
+DHT dht(DHTPIN, DHTTYPE);
+float requestTemperature();
 
 void reconnect();
 void publishMessage(const char *topic, const char *message);
+float requestTemperature();
+#define ONE_WIRE_BUS 2
 
-const char *ssid = "COVID_19_5G_Hotspot_#421";
+OneWire oneWire(ONE_WIRE_BUS);
+DS18B20 sensor(&oneWire);
+const char *ssid = "TI_EIXAME_TI_XASAME";
 const char *password = "denkserw";
 const char *mqtt_server = "192.168.100.3";
 
@@ -41,7 +54,8 @@ void setup()
     // Connect to WPA/WPA2 network
     status = WiFi.begin(ssid, password);
   }
-
+  sensor.begin();
+    dht.begin();
   // you're connected now, so print out the data
   Serial.println("You're connected to the network");
 
@@ -69,8 +83,29 @@ void reconnect()
       Serial.println("connected");
       while (true)
       {
-        delay(500);
-        publishMessage("my/topic", getTemperature());
+           delay(500);
+        float ds18b20Temperature = requestTemperature();
+        float dhtTemperature = dht.readTemperature();
+        float dhtHumidity = dht.readHumidity();
+
+        // Check if any reads failed and exit early (to try again).
+        if (isnan(dhtTemperature) || isnan(dhtHumidity)) {
+          Serial.println("Failed to read from DHT sensor!");
+          return;
+        }
+
+        // Create a JSON document
+        StaticJsonDocument<200> doc;
+        doc["ds18b20_temperature"] = ds18b20Temperature;
+        doc["dht_temperature"] = dhtTemperature;
+        doc["dht_humidity"] = dhtHumidity;
+
+        // Serialize JSON to a string
+        char jsonBuffer[128];
+        serializeJson(doc, jsonBuffer);
+
+        // Publish the JSON string
+        publishMessage("my/topic", jsonBuffer);
       }
     }
     else
@@ -134,4 +169,19 @@ void publishMessage(const char *topic, const char *message)
   {
     Serial.println("Failed to publish message after " + String(maxRetries) + " attempts");
   }
+}
+
+float requestTemperature()
+{
+  sensor.requestTemperatures();
+
+  //  wait until sensor is ready
+  while (!sensor.isConversionComplete())
+  {
+    delay(1);
+  }
+  float temp = sensor.getTempC();
+  Serial.print("Temperature: ");
+  Serial.println(temp);
+  return temp;
 }

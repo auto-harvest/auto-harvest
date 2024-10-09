@@ -37,7 +37,7 @@ mqttClient.on('connect', () => {
     }
   });
 });
-
+ 
 mqttClient.on('message', function (topic, message) {
   // message is Buffer
   console.log(`Received message on ${topic}: ${message.toString()}`);
@@ -45,7 +45,7 @@ mqttClient.on('message', function (topic, message) {
   // Send the message to all connected WebSocket clients
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(`Received message on ${topic}: ${message.toString()}`);
+      client.send(message.toString());
     }
   });
 });
