@@ -10,11 +10,28 @@
     "expo": "*",
     "react-native-svg": "*",
     "react-native-web": "*",
-    "react": "18.2.0"
+    "react": "18.2.0",
+    "jest-expo": "*",
+    "@nx/devkit": "*",
+    "@nx/eslint": "*",
+    "@nx/jest": "*",
+    "@nx/js": "*",
+    "@nx/react": "*",
+    "@nx/web": "*",
+    "@nx/webpack": "*",
+    "enhanced-resolve": "*",
+    "metro-resolver": "*",
+    "node-fetch": "*",
+    "picocolors": "*",
+    "tsconfig-paths": "*",
+    "tslib": "*",
+    "@expo/metro-config": "*",
+    "react-native-svg-transformer": "*"
   },
   "scripts": {
     "eas-build-post-install": "cd ../../../ && node tools/scripts/eas-build-post-install.mjs . apps/front/native-client",
     "android": "expo run:android",
     "ios": "expo run:ios"
-  }
+  },
+  "devDependencies": {}
 }

@@ -1,187 +1,62 @@
-#include <SPI.h>
-#include <WiFiEspClient.h>
-#include <WiFiEsp.h>
-#include <WiFiEspUdp.h>
-#include <PubSubClient.h>
-#include <DS18B20.h>
-#include <ArduinoJson.h>
-#include <DHT.h>
-#include <DHT_U.h>
-#define DHTPIN 3     // Pin which is connected to the DHT sensor
-#define DHTTYPE DHT11   // DHT 11
+#include <Arduino.h>
+#include "sensors/water-level/waterLevel.sensor.h"
+#include "relay/relay.module.h"
+#include <Wire.h>
+#include "Waveshare_LCD1602.h"
 
-DHT dht(DHTPIN, DHTTYPE);
-float requestTemperature();
-
-void reconnect();
-void publishMessage(const char *topic, const char *message);
-float requestTemperature();
-#define ONE_WIRE_BUS 2
-
-OneWire oneWire(ONE_WIRE_BUS);
-DS18B20 sensor(&oneWire);
-const char *ssid = "TI_EIXAME_TI_XASAME";
-const char *password = "denkserw";
-const char *mqtt_server = "192.168.100.3";
-
-int status = WL_IDLE_STATUS; // the Wifi radio's status
-WiFiEspClient espClient;
-PubSubClient client(espClient);
-
+Waveshare_LCD1602 lcd(16, 2); // 16 characters and 2 lines of show
+void show(char *str);
+String previous = "";
+int i = 0;
 void setup()
 {
-  // initialize serial for debugging
-  Serial.begin(115200);
-  // initialize serial for ESP module
-  Serial1.begin(115200);
-  // initialize ESP module
-  WiFi.init(&Serial1);
+    // Initialize serial communication for debugging
+    Serial.begin(115200);
+    // initialize
+    Wire.begin();
+    Serial.println("Scanning for I2C devices...");
 
-  // check for the presence of the shield
-  if (WiFi.status() == WL_NO_SHIELD)
-  {
-    Serial.println("WiFi shield not present");
-    // don't continue
-    while (true)
-      ;
-  }
+    Serial.println("Scanning complete.");
+    lcd.init();
 
-  // attempt to connect to WiFi network
-  while (status != WL_CONNECTED)
-  {
-    Serial.print("Attempting to connect to WPA SSID: ");
-    Serial.println(ssid);
-    // Connect to WPA/WPA2 network
-    status = WiFi.begin(ssid, password);
-  }
-  sensor.begin();
-    dht.begin();
-  // you're connected now, so print out the data
-  Serial.println("You're connected to the network");
+    lcd.setCursor(0, 0);
+    lcd.send_string("AutoHarvest v0.1");
+    lcd.setCursor(0, 1);
+    lcd.send_string("Initializing...");
+    lcd.blink();
+    initializeWaterLevelSensor();
 
-  client.setServer(mqtt_server, 3011);
+    // Initialize the relays
+    initializeRelays();
+    turnOnRelay(relayPins[0]);
+    turnOnRelay(relayPins[1]);
 }
+int r, g, b, t = 0;
 
 void loop()
 {
-  if (!client.connected())
-  {
-    reconnect();
-  }
-  client.loop();
+    // Check the state of the water level sensor
+
+    // Serial.println("Water level is: " + waterLevelIs());
+    Serial.println("Hello");
+    i += 1;
+    // Convert the integer to a character array
+    char buffer[10];
+    itoa(i, buffer, 10); // Convert integer to string (base 10)
+    show(buffer);
+    delay(1000); // Wait for 1 second before checking again
 }
 
-void reconnect()
+void show(char *str)
 {
-  // Loop until we're reconnected
-  while (!client.connected())
-  {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect("ESP8266Client"))
+    if (str == previous.c_str())
     {
-      Serial.println("connected");
-      while (true)
-      {
-           delay(500);
-        float ds18b20Temperature = requestTemperature();
-        float dhtTemperature = dht.readTemperature();
-        float dhtHumidity = dht.readHumidity();
-
-        // Check if any reads failed and exit early (to try again).
-        if (isnan(dhtTemperature) || isnan(dhtHumidity)) {
-          Serial.println("Failed to read from DHT sensor!");
-          return;
-        }
-
-        // Create a JSON document
-        StaticJsonDocument<200> doc;
-        doc["ds18b20_temperature"] = ds18b20Temperature;
-        doc["dht_temperature"] = dhtTemperature;
-        doc["dht_humidity"] = dhtHumidity;
-
-        // Serialize JSON to a string
-        char jsonBuffer[128];
-        serializeJson(doc, jsonBuffer);
-
-        // Publish the JSON string
-        publishMessage("my/topic", jsonBuffer);
-      }
+        return;
     }
-    else
-    {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
-
-void publishMessage(const char *topic, const char *message)
-{
-  int retryCount = 0;
-  const int maxRetries = 3;
-
-  while (retryCount < maxRetries)
-  {
-    if (client.connected())
-    {
-      if (client.publish(topic, message))
-      {
-        Serial.println("Message published successfully");
-        break;
-      }
-      else
-      {
-        Serial.println("Message publishing failed, retrying...");
-        retryCount++;
-      }
-    }
-    else
-    {
-      Serial.println("Not connected to MQTT server, attempting to reconnect...");
-      // Attempt to reconnect to the WiFi network here
-      if (WiFi.begin(ssid, password) == WL_CONNECTED)
-      {
-        Serial.println("Reconnected to WiFi network");
-        // Now attempt to reconnect to the MQTT server
-        if (client.connect("mqtt_server"))
-        {
-          Serial.println("Reconnected to MQTT server");
-        }
-        else
-        {
-          Serial.println("Failed to reconnect to MQTT server, retrying...");
-          retryCount++;
-        }
-      }
-      else
-      {
-        Serial.println("Failed to reconnect to WiFi network, retrying...");
-        retryCount++;
-      }
-    }
-  }
-
-  if (retryCount == maxRetries)
-  {
-    Serial.println("Failed to publish message after " + String(maxRetries) + " attempts");
-  }
-}
-
-float requestTemperature()
-{
-  sensor.requestTemperatures();
-
-  //  wait until sensor is ready
-  while (!sensor.isConversionComplete())
-  {
-    delay(1);
-  }
-  float temp = sensor.getTempC();
-  Serial.print("Temperature: ");
-  Serial.println(temp);
-  return temp;
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.send_string(str);
+    lcd.setCursor(0, 1);
+    lcd.send_string("Hello marie!");
+    previous = str;
 }
