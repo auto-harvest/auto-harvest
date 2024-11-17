@@ -1,24 +1,34 @@
 #include "relay.module.h"
 
-// Define the relay pins
-const int relayPins[] = {18, 19, 20, 21, 22};
-
-void initializeRelays()
+// Constructor
+RelayModule::RelayModule(const int *pins, int numPins) : pins(pins), numPins(numPins)
 {
-    // Initialize the relay pins as outputs
-    for (int i = 0; i <= 4; i++)
-    { 
-        pinMode(relayPins[i], OUTPUT);
-        digitalWrite(relayPins[i], HIGH); // Initially turn off all relays
+}
+
+// Destructor
+RelayModule::~RelayModule()
+{
+    // Destructor implementation (if needed)
+}
+
+// Initialize the relay pins as outputs
+void RelayModule::initialize()
+{
+    for (int i = 0; i < numPins; i++)
+    {
+        pinMode(pins[i], OUTPUT);
+        digitalWrite(pins[i], HIGH); // Initially turn off all relays
     }
 }
 
-void turnOnRelay(int relayPin)
+// Turn on the relay
+void RelayModule::turnOn(int relayPin)
 {
     digitalWrite(relayPin, LOW);
 }
 
-void turnOffRelay(int relayPin)
+// Turn off the relay
+void RelayModule::turnOff(int relayPin)
 {
     digitalWrite(relayPin, HIGH);
 }

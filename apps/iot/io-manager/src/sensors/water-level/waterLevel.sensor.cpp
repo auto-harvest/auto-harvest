@@ -1,47 +1,75 @@
 #include "waterLevel.sensor.h"
 
-// Define the water level sensor pin
-const int waterLevelLowSensorPin = 14;
-const int waterLevelHighSensorPin = 15;
-
-void initializeWaterLevelSensor()
+WaterLevelSensor::WaterLevelSensor(uint8_t lowPin, uint8_t highPin) : lowPin(lowPin), highPin(highPin)
 {
-    // Initialize the water level sensor pin as input
-    pinMode(waterLevelLowSensorPin, INPUT_PULLUP);
-    pinMode(waterLevelHighSensorPin, INPUT_PULLUP);
+    this->lowPin = lowPin;
+    this->highPin = highPin;
 }
 
-bool isWaterLevelLow()
+WaterLevelSensor::~WaterLevelSensor()
 {
-    // Read the state of the water level sensor pin
-    return digitalRead(waterLevelLowSensorPin) == LOW;
+    // Destructor implementation (if needed)
+}
+void WaterLevelSensor::initialize()
+{
+    pinMode(this->lowPin, INPUT_PULLUP);
+    pinMode(this->highPin, INPUT_PULLUP);
 }
 
-bool isWaterLevelAdequate()
+std::map<std::string, double> WaterLevelSensor::readData()
 {
-    return digitalRead(waterLevelLowSensorPin) == HIGH && digitalRead(waterLevelHighSensorPin) == LOW;
+    std::map<std::string, double> data;
+    data["water-level"] = waterLevelIs();
+    return data;
 }
 
-bool isWaterLevelHigh()
+const char *WaterLevelSensor::getType()
 {
-    return digitalRead(waterLevelHighSensorPin) == HIGH;
-}
-// in case of gravity flip
-
-bool isGravityReversed()
-{
-    return digitalRead(waterLevelLowSensorPin) == LOW && digitalRead(waterLevelHighSensorPin) == HIGH;
+    return "WaterLevel";
 }
 
-String waterLevelIs(){
-    if(isWaterLevelLow()){
-        return "low";
-    } else if(isWaterLevelAdequate()){
-        return "adequate";
-    } else if(isWaterLevelHigh()){
-        return "high";
-    } else if(isGravityReversed()){
-        return "oh shoot man";
+const char *WaterLevelSensor::getSensorName()
+{
+    return "Water Level Sensor";
+}
+
+bool WaterLevelSensor::isWaterLevelLow()
+{
+    return digitalRead(lowPin) == LOW;
+}
+
+bool WaterLevelSensor::isWaterLevelAdequate()
+{
+    return digitalRead(lowPin) == HIGH && digitalRead(highPin) == LOW;
+}
+
+bool WaterLevelSensor::isWaterLevelHigh()
+{
+    return digitalRead(highPin) == HIGH;
+}
+
+bool WaterLevelSensor::isGravityReversed()
+{
+    return digitalRead(lowPin) == LOW && digitalRead(highPin) == HIGH;
+}
+
+double WaterLevelSensor::waterLevelIs()
+{
+    if (isWaterLevelLow())
+    {
+        return -1.0;
     }
-    return "how did you get here again ?";
+    else if (isWaterLevelAdequate())
+    {
+        return 0.0;
+    }
+    else if (isWaterLevelHigh())
+    {
+        return 1.0;
+    }
+    else if (isGravityReversed())
+    {
+        return 101010.0;
+    }
+    return 101010.0;
 }

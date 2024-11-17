@@ -84,7 +84,7 @@ void reconnect()
       while (true)
       {
            delay(500);
-        float ds18b20Temperature = requestTemperature();
+        float waterTemperatureTemperature = requestTemperature();
         float dhtTemperature = dht.readTemperature();
         float dhtHumidity = dht.readHumidity();
 
@@ -96,7 +96,7 @@ void reconnect()
 
         // Create a JSON document
         StaticJsonDocument<200> doc;
-        doc["ds18b20_temperature"] = ds18b20Temperature;
+        doc["waterTemperature_temperature"] = waterTemperatureTemperature;
         doc["dht_temperature"] = dhtTemperature;
         doc["dht_humidity"] = dhtHumidity;
 

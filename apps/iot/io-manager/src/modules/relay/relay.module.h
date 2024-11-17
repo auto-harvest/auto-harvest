@@ -1,11 +1,22 @@
-#ifndef relay.module_H
-#define relay.module_H
+
+#ifndef RELAY_MODULE_H
+#define RELAY_MODULE_H
 
 #include <Arduino.h>
-extern const int relayPins[5]; // Declare relayPins as an extern variable
- 
-void initializeRelays();
-void turnOnRelay(int relayPin);
-void turnOffRelay(int relayPin);
 
-#endif // relay.module_H
+class RelayModule
+{
+public:
+    RelayModule(const int *pins, int numPins);
+    ~RelayModule();
+
+    void initialize();
+    void turnOn(int relayPin);
+    void turnOff(int relayPin);
+
+private:
+    const int *pins;
+    int numPins;
+};
+
+#endif // RELAY_MODULE_H
