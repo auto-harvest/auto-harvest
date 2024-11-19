@@ -14,7 +14,7 @@ SingleRelay::~SingleRelay()
 // Initialize the relay pin as output
 void SingleRelay::initialize()
 {
-    Serial.print("Initializing Single Relay... ");
+    Serial.print("Initializing Single Relay on pin: ");
     Serial.println(relayPin);
     pinMode(relayPin, OUTPUT);
     digitalWrite(relayPin, HIGH); // Initially turn off the relay

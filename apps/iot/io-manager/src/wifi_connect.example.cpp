@@ -26,7 +26,7 @@
 // char server[] = "arduino.cc";
 
 // // Initialize the Ethernet client object
-// WiFiEspClient client;
+// WiFiClient client;
 
 // void setup()
 // {

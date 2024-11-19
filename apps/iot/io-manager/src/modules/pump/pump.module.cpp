@@ -11,6 +11,8 @@ PumpModule::~PumpModule()
 
 void PumpModule::initialize()
 {
+    Serial.println("Initializing Water Pump Module...");
+
     relay->initialize();
 }
 
@@ -31,7 +33,7 @@ const char *PumpModule::getStatus()
 
 void PumpModule::setPower(bool power)
 {
-    //print state
+    // print state
     Serial.print("Setting pump power to: ");
     Serial.println(power ? "On" : "Off");
     powerState = power;

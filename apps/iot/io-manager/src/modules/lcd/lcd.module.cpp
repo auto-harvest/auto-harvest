@@ -15,11 +15,11 @@ LCDModule::~LCDModule()
 // Initialize the LCD module
 void LCDModule::initialize()
 {
-
+    Serial.println("Initializing LCD Module...");
     screen->init();
+
     screen->setCursor(0, 0);
-    screen->send_string("AutoHarvest v0.1");
-    screen->setCursor(0, 1);
+    screen->send_string("AutoHarvest v0.111");
     screen->send_string(status.c_str());
     screen->blink();
 }
@@ -27,15 +27,22 @@ void LCDModule::initialize()
 // Update the LCD display
 void LCDModule::update(const char *status)
 {
-    screen->clear();
     screen->setCursor(0, 0);
-    screen->send_string(status);
+    // pad status with spaces so it reaches 16 characters
+    String statusString = status;
+    statusString.concat("                ");
+    statusString = statusString.substring(0, 16);
+    screen->send_string(statusString.c_str());
+}
 
-    auto data = dataCollector->collectData();
-    String sensorData;
-
+void LCDModule::displaySensorData()
+{
     screen->setCursor(0, 1);
-    screen->send_string("Some data");
+    auto data = dataCollector->currentData;
+    String sensorData;
+    String temperature = String(data["temperature"], 1) + "C " + String(data["humidity"], 0) + "%" + " " + String(data["tds"], 0) + "ppm " + String(data["water-temperature"], 1) + "C";
+
+    screen->send_string(temperature.c_str());
 }
 
 // Get the type of the module

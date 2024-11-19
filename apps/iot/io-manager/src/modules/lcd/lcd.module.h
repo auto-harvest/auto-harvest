@@ -15,6 +15,7 @@ public:
 
     void initialize() override;
     void update(const char *status);
+    void displaySensorData();
     const char *getType() override;
     const char *getName() override;
     const char *getStatus() override;

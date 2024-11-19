@@ -8,6 +8,7 @@
 #include "modules/pump/pump.module.h"
 #include "modules/relay/single-relay.module.h"
 #include "modules/lcd/lcd.module.h"
+#include "modules/wifi/wifi.module.h"
 #include "services/data-collector/dataCollector.service.h"
 class ModuleManager
 {
@@ -20,7 +21,7 @@ public:
     // Public references to all modules
     PumpModule *waterPump;
     std::vector<SingleRelay *> relays;
-    LCDModule *lcdModule;
+    LCDModule *lcd;
 
 private:
     // Add other module references here as needed

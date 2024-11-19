@@ -6,6 +6,7 @@ DHT11Sensor::DHT11Sensor(uint8_t pin) : pin(pin), dht(pin, DHT11)
 
 void DHT11Sensor::initialize()
 {
+    Serial.println("Initializing DHT11 Sensor...");
     dht.begin();
 }
 

@@ -11,6 +11,7 @@ GravityTDSMeter::~GravityTDSMeter()
 
 void GravityTDSMeter::initialize()
 {
+    Serial.println("Initializing Gravity TDS Meter...");
     pinMode(pin, INPUT);
 }
 

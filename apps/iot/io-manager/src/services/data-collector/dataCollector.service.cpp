@@ -39,6 +39,7 @@ std::map<std::string, double> DataCollector::collectData()
         auto data = sensor->readData();
         collectedData.insert(data.begin(), data.end());
     }
+   currentData = collectedData;
     return collectedData;
 }
 

@@ -24,6 +24,7 @@ public:
     void initializeSensors();
     std::map<std::string, double> collectData();
     void printData(const std::map<std::string, double> data);
+    std::map<std::string, double> currentData;
 
 private:
     std::vector<AbstractSensor *> sensors;
