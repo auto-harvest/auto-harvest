@@ -18,6 +18,7 @@ public:
     std::map<std::string, double> readData() override;
     const char *getType() override;
     const char *getSensorName() override;
+    double lastTemperature;
 
 private:
     uint8_t pin;

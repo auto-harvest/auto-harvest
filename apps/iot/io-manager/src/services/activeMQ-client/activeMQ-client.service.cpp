@@ -1,24 +1,40 @@
 #include "activeMQ-client.service.h"
 
+// Initialize the static instance pointer
+ActiveMQClientService *ActiveMQClientService::instance = nullptr;
+
 // Constructor
 ActiveMQClientService::ActiveMQClientService() : mqttClient(wifiClient)
 {
-    mqttClient.setCallback([this](char *topic, byte *payload, unsigned int length)
-                           { onMessageCallback(topic, payload, length); });
+    // Set this instance as the static instance
+    instance = this;
+
+    // Set the static callback for PubSubClient
+    mqttClient.setCallback(onMessageCallback);
 }
 
 // Destructor
-ActiveMQClientService::~ActiveMQClientService() {}
+ActiveMQClientService::~ActiveMQClientService()
+{
+    instance = nullptr; // Clear the static instance
+}
+
+bool ActiveMQClientService::isConnected()
+{
+    return mqttClient.connected();
+}
 
 // Initialize the MQTT client
 void ActiveMQClientService::initialize(const char *brokerAddress, int port, const char *clientId)
 {
-    mqttClient.setServer(brokerAddress, port);
+    // Set the static instance
+    Serial.println("Initializing ActiveMQ client service. " + String(brokerAddress) + " " + String(port) + " " + String(clientId));
+    mqttClient.setServer("192.168.100.3", 3011);
 
     // Attempt to connect to the MQTT broker
     while (!mqttClient.connected())
     {
-        Serial.println("Connecting to ActiveMQ broker...");
+        Serial.println("Connecting to ActiveMQ broker with clientId: " + String(clientId));
         if (mqttClient.connect(clientId))
         {
             Serial.println("Connected to ActiveMQ broker.");
@@ -47,7 +63,7 @@ void ActiveMQClientService::subscribe(const String &topic)
 }
 
 // Publish a JSON-formatted message to a topic
-void ActiveMQClientService::publish(const String &topic, const JsonObject &message)
+void ActiveMQClientService::publish(const String &topic, const JsonDocument &message)
 {
     if (!mqttClient.connected())
     {
@@ -81,32 +97,32 @@ bool ActiveMQClientService::hasMessage()
 }
 
 // Retrieve the next message from the queue
-String ActiveMQClientService::getNextMessage()
+MQTTMessage ActiveMQClientService::getNextMessage()
 {
     if (hasMessage())
     {
-        String message = messageQueue.front();
+
+        MQTTMessage message = messageQueue.front();
         messageQueue.pop();
         return message;
     }
-    return "";
+    return {"", ""};
 }
 
-// Callback for handling incoming MQTT messages
+// Static MQTT callback for handling incoming messages
 void ActiveMQClientService::onMessageCallback(char *topic, byte *payload, unsigned int length)
 {
-    String message = "";
-    for (unsigned int i = 0; i < length; i++)
+    if (instance)
     {
-        message += (char)payload[i];
+        String message = "";
+        for (unsigned int i = 0; i < length; i++)
+        {
+            message += (char)payload[i];
+        }
+
+        // Use the instance to handle the message
+        instance->handleIncomingMessage(String(topic), message);
     }
-
-    // Process the message
-    Serial.println("Received message on topic: " + String(topic));
-    Serial.println("Message: " + message);
-
-    // Queue the message for processing
-    messageQueue.push(message);
 }
 
 // Helper to handle incoming messages
@@ -114,6 +130,8 @@ void ActiveMQClientService::handleIncomingMessage(const String &topic, const Str
 {
     Serial.println("Processing message from topic: " + topic);
     Serial.println("Message: " + message);
+    MQTTMessage mqttMessage = {topic, message};
 
-    // Add custom processing logic here
+    // Queue the message for later processing
+    messageQueue.push(mqttMessage);
 }

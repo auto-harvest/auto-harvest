@@ -8,7 +8,8 @@
 #include "sensors/water-level/waterLevel.sensor.h"
 #include "sensors/water-temperature/waterTemperature.sensor.h"
 #include "sensors/tds/tds.sensor.h"
-
+#include "sensors/ph/ph.sensor.h"
+#include "sensors/water-flow/waterFlow.sensor.h"
 #include <ArduinoSTL.h>
 #include <map>
 #include <memory>
@@ -23,10 +24,14 @@ public:
 
     void initializeSensors();
     std::map<std::string, double> collectData();
+    static DataCollector *getInstance();
     void printData(const std::map<std::string, double> data);
     std::map<std::string, double> currentData;
+    std::map<std::string, double> previousData;
+    PHSensor *phSensor;
 
 private:
+    static DataCollector *instance;
     std::vector<AbstractSensor *> sensors;
 };
 

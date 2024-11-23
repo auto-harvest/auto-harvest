@@ -3,20 +3,19 @@
 
 #include <Arduino.h>
 #include <WiFiEspAT.h>
-#include "services/disk-manager/diskManager.service.h"
 
 class WiFiService
 {
 public:
-    WiFiService(DiskManagerService *diskManager);
-    void begin();
+    WiFiService();
+    String begin();
 
     void scanNetworks();
     void turnToAccessPointMode(const char *ssid, const char *password);
     void turnToNormalMode();
     void connectToWiFi(const char *ssid, const char *password);
-
-    DiskManagerService *diskManager;
+    String getMacAddress();
+    String mode;
 };
 
 #endif // WIFI_SERVICE_H

@@ -1,18 +1,27 @@
 #include "diskManager.service.h"
-#include "Arduino.h"
-#include <algorithm> // Add this line to include the <algorithm> header file
+#include <algorithm>
+
+DiskManagerService *DiskManagerService::instance = nullptr;
 
 DiskManagerService::DiskManagerService()
 {
+    instance = this;
 }
 
 DiskManagerService::~DiskManagerService()
 {
+    instance = nullptr;
+}
+
+DiskManagerService *DiskManagerService::getInstance()
+{
+    return instance;
 }
 
 void DiskManagerService::initialize()
 {
     EEPROM.begin();
+    reserveBlock(0x00, 128);
 }
 
 void DiskManagerService::save(const String &key, const String &value)
@@ -42,8 +51,7 @@ String DiskManagerService::read(const String &key)
     {
         return "";
     }
-    String result = readString(keyAddress + MAX_KEY_LENGTH);
-    return result;
+    return readString(keyAddress + MAX_KEY_LENGTH);
 }
 
 void DiskManagerService::remove(const String &key)
@@ -59,9 +67,31 @@ void DiskManagerService::remove(const String &key)
     }
 }
 
+void DiskManagerService::purge()
+{
+    for (int i = RESERVED_END + 1; i < EEPROM_SIZE; i++) // Skip reserved area
+    {
+        EEPROM.write(i, 0);
+    }
+    EEPROM.end();
+}
+
+void DiskManagerService::reserveBlock(int startAddress, int size)
+{
+    // Mark addresses as reserved by writing a placeholder value (e.g., 0xFF)
+    for (int i = startAddress; i < startAddress + size; i++)
+    {
+        if (i < EEPROM_SIZE)
+        {
+            EEPROM.write(i, 0xFF);
+        }
+    }
+    EEPROM.end();
+}
+
 int DiskManagerService::findKeyAddress(const String &key)
 {
-    for (int i = 0; i < EEPROM_SIZE; i += MAX_KEY_LENGTH + MAX_VALUE_LENGTH)
+    for (int i = RESERVED_END + 1; i < EEPROM_SIZE; i += MAX_KEY_LENGTH + MAX_VALUE_LENGTH)
     {
         String storedKey = readString(i);
 
@@ -75,7 +105,7 @@ int DiskManagerService::findKeyAddress(const String &key)
 
 int DiskManagerService::findEmptyAddress()
 {
-    for (int i = 0; i < EEPROM_SIZE; i += MAX_KEY_LENGTH + MAX_VALUE_LENGTH)
+    for (int i = RESERVED_END + 1; i < EEPROM_SIZE; i += MAX_KEY_LENGTH + MAX_VALUE_LENGTH)
     {
         bool isEmpty = true;
 
@@ -99,7 +129,7 @@ int DiskManagerService::findEmptyAddress()
 
 void DiskManagerService::writeString(int address, const String &data)
 {
-    if (address < 0 || address >= EEPROM_SIZE)
+    if (address < RESERVED_END + 1 || address >= EEPROM_SIZE)
     {
         Serial.println("Error: Invalid EEPROM address: " + String(address));
         return;
@@ -135,12 +165,4 @@ String DiskManagerService::readString(int address)
     }
 
     return result;
-}
-void DiskManagerService::purge()
-{
-    for (int i = 0; i < EEPROM_SIZE; i++)
-    {
-        EEPROM.write(i, 0);
-    }
-    EEPROM.end();
 }

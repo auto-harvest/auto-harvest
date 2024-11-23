@@ -18,7 +18,7 @@ void GravityTDSMeter::initialize()
 std::map<std::string, double> GravityTDSMeter::readData()
 {
     std::map<std::string, double> data;
-    double temperature = tempSensor->readData()["water-temperature"];
+    double temperature = tempSensor->lastTemperature;
     double tdsValue = readTDS(temperature);
     data["tds"] = tdsValue;
     return data;

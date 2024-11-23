@@ -1,8 +1,8 @@
 #include "wifiManager.service.h"
 
-WiFiService::WiFiService(DiskManagerService *diskManager) : diskManager(diskManager) {}
+WiFiService::WiFiService() {}
 
-void WiFiService::begin()
+String WiFiService::begin()
 {
     Serial1.begin(115200);
     WiFi.init(&Serial1); // Initialize the WiFi module with the Serial1 interface
@@ -13,6 +13,7 @@ void WiFiService::begin()
             ; // Don't continue
     }
     WiFi.disconnect();
+    return getMacAddress();
 }
 
 void WiFiService::scanNetworks()
@@ -49,7 +50,7 @@ void WiFiService::turnToAccessPointMode(const char *ssid, const char *password)
     Serial.println("Access Point started");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
-
+    this->mode = "ap";
     Serial.print("SSID: ");
     Serial.println(WiFi.SSID());
 
@@ -79,7 +80,25 @@ void WiFiService::connectToWiFi(const char *ssid, const char *password)
     }
 
     Serial.println("");
+    this->mode = "client";
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
+}
+String WiFiService::getMacAddress()
+{
+    byte mac[6];
+    WiFi.macAddress(mac);
+    char macStr[18] = {0};
+    for (int i = 0; i < 6; ++i)
+    {
+        if (i > 0)
+            strcat(macStr, ":");
+        char octet[3];
+        sprintf(octet, "%02X", mac[i]);
+        strcat(macStr, octet);
+    }
+    Serial.print("MAC Address: ");
+    Serial.println(macStr);
+    return macStr;
 }

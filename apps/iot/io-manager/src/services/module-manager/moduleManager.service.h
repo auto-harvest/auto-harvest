@@ -9,6 +9,7 @@
 #include "modules/relay/single-relay.module.h"
 #include "modules/lcd/lcd.module.h"
 #include "modules/wifi/wifi.module.h"
+#include "modules/air-pump/air-pump.module.h"
 #include "services/data-collector/dataCollector.service.h"
 class ModuleManager
 {
@@ -22,8 +23,10 @@ public:
     PumpModule *waterPump;
     std::vector<SingleRelay *> relays;
     LCDModule *lcd;
+    AirPumpModule *airPump;
 
 private:
+    static ModuleManager *instance;
     // Add other module references here as needed
 };
 

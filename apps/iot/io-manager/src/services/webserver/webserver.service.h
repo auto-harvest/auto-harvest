@@ -7,14 +7,15 @@
 class WebServerService
 {
 public:
-    WebServerService(DiskManagerService *diskManager);
+    WebServerService(DiskManagerService &diskManager, WiFiService &wifiService);
     void begin();
     void handleClient();
+    WiFiServer server;
+    String getState();
 
 private:
-    WiFiServer server;
-    DiskManagerService *diskManager;
-    WiFiService *wifiService;
+    DiskManagerService &diskManager;
+    WiFiService &wifiService;
     void handleRoot(WiFiClient &client);
     void handleSaveCredentials(WiFiClient &client, String &body);
     String readRequestBody(WiFiClient &client, int contentLength);

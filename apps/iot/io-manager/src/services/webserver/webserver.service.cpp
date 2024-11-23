@@ -1,6 +1,7 @@
 #include "webserver.service.h"
 #include "utility/parseRequest.util.h"
-WebServerService::WebServerService(DiskManagerService *diskManager) : server(80), diskManager(diskManager) {}
+#include "context/app.context.h"
+WebServerService::WebServerService(DiskManagerService &diskManager, WiFiService &wifiService) : server(80), diskManager(diskManager), wifiService(wifiService) {}
 
 void WebServerService::begin()
 {
@@ -8,6 +9,12 @@ void WebServerService::begin()
     // Start the server
     server.begin();
     Serial.println("Server started");
+    server.status();
+}
+
+String WebServerService::getState()
+{
+    return server.status() == 1 ? "running" : "stopped";
 }
 
 void WebServerService::handleClient()
@@ -155,8 +162,8 @@ void WebServerService::handleSaveCredentials(WiFiClient &client, String &body)
     String password = queryParams["password"];
 
     // Save credentials
-    diskManager->save("ssid", ssid);
-    diskManager->save("password", password);
+    diskManager.save("ssid", ssid);
+    diskManager.save("password", password);
     // Send response
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: text/html");
@@ -164,7 +171,7 @@ void WebServerService::handleSaveCredentials(WiFiClient &client, String &body)
     client.println();
     client.println("<html><body><h1>Credentials saved. Please restart the device.</h1></body></html>");
     client.stop();
-    wifiService->connectToWiFi(ssid.c_str(), password.c_str());
+    wifiService.connectToWiFi(ssid.c_str(), password.c_str());
 }
 
 String WebServerService::readRequestBody(WiFiClient &client, int contentLength)

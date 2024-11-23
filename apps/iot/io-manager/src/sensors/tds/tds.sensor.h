@@ -22,6 +22,7 @@ private:
     uint8_t pin;
     WaterTemperatureSensor *tempSensor;
     double readTDS(double temperature);
+    
 };
 
 #endif // GRAVITYTDSMETER_H

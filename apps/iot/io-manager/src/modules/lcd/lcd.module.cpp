@@ -40,7 +40,7 @@ void LCDModule::displaySensorData()
     screen->setCursor(0, 1);
     auto data = dataCollector->currentData;
     String sensorData;
-    String temperature = String(data["temperature"], 1) + "C " + String(data["humidity"], 0) + "%" + " " + String(data["tds"], 0) + "ppm " + String(data["water-temperature"], 1) + "C";
+    String temperature = String(data["flow-rate-liters"], 1) + "L/m " + String(data["water-temperature"], 2) + "C" + " " + String(data["tds"], 0) + "ppm ";
 
     screen->send_string(temperature.c_str());
 }

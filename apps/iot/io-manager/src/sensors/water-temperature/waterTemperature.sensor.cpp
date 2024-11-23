@@ -18,7 +18,8 @@ std::map<std::string, double> WaterTemperatureSensor::readData()
 {
     std::map<std::string, double> data;
     sensors.requestTemperatures();
-    data["water-temperature"] = sensors.getTempCByIndex(0);
+    this->lastTemperature = sensors.getTempCByIndex(0);
+    data["water-temperature"] = lastTemperature;
     return data;
 }
 
