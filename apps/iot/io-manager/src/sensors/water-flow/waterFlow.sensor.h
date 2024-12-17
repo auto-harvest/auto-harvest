@@ -25,7 +25,8 @@ public:
     volatile uint8_t lastFlowPinState;
     volatile long lastPulseTime;
     static WaterFlowSensor *instance; // For static ISR access
-    void useInterrupt(boolean v);     // Interrupt handler
+    void useInterrupt(boolean v);     // Interrupt handler+
+    static void flowSensorISR();      // Interrupt service routine
 };
 
 #endif // WATERFLOW_SENSOR_H

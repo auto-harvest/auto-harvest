@@ -44,9 +44,10 @@ void WiFiService::scanNetworks()
 
 void WiFiService::turnToAccessPointMode(const char *ssid, const char *password)
 {
+    // WiFi.disconnect();
 
     WiFi.softAP(ssid, password, 10);
-    WiFi.config(IPAddress(5, 5, 5, 5), IPAddress(5, 5, 5, 5), IPAddress(255, 255, 255, 0));
+    WiFi.softAPConfig(IPAddress(5, 5, 5, 5), IPAddress(5, 5, 5, 5), IPAddress(255, 255, 255, 0));
     Serial.println("Access Point started");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());

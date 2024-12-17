@@ -27,6 +27,7 @@ public:
     static DataCollector *getInstance();
     void printData(const std::map<std::string, double> data);
     std::map<std::string, double> currentData;
+
     std::map<std::string, double> previousData;
     PHSensor *phSensor;
 

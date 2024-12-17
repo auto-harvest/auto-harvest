@@ -8,8 +8,8 @@ export default defineConfig({
   cacheDir: '../../../node_modules/.vite/apps/auto-harvest',
 
   server: {
-    port: 80,
-    host: '192.168.100.3',
+    port: 3050,
+    host: '0.0.0.0',
   },
 
   preview: {
@@ -17,7 +17,7 @@ export default defineConfig({
     host: 'localhost',
   },
 
-  plugins: [react(), nxViteTsPaths()],  
+  plugins: [react(), nxViteTsPaths()],
 
   // Uncomment this if you are using workers.
   // worker: {

@@ -1,18 +1,29 @@
 #include "ph.sensor.h"
 #include <Arduino.h> // Required for analogRead and millis functions
 #define PHADDR 0x00
-float neutralVoltage = 1900.0;
-float acidVoltage = 1600.0;
+float neutralVoltage = 1950.0;
+float acidVoltage = 1615.0;
 // Constructor
-PHSensor::PHSensor(int phPin, WaterTemperatureSensor& tempSensor)
-    : pin(phPin), temperature(25.0), voltage(0), phValue(0), tempSensor() {}
+PHSensor::PHSensor(int phPin, WaterTemperatureSensor &tempSensor)
+    : pin(phPin), temperature(25.0), voltage(0), phValue(0), tempSensor(tempSensor) {}
 
 // Read the voltage and calculate the pH value
 float PHSensor::readPH()
 {
+    // Take multiple samples and average them
+    const int numSamples = 50;
+    float totalVoltage = 0;
+
+    for (int i = 0; i < numSamples; i++)
+    {
+        totalVoltage += analogRead(pin);
+        delay(10); // Small delay to allow for stable readings
+    }
+
+    // Convert averaged ADC value to millivolts
+    voltage = (totalVoltage / numSamples) / 1023.0 * 5000.0;
     // Read the analog voltage
-    voltage = analogRead(pin) / 1024.0 * 5000.0; // Convert ADC value to millivolts
-    temperature = 19.0;
+    temperature = tempSensor.lastTemperature;
 
     // Adjust slope based on temperature (Nernst equation)
     float tempSlope = 59.16 + 0.1984 * (temperature - 25.0); // Adjust slope in mV/pH per °C
@@ -20,21 +31,23 @@ float PHSensor::readPH()
     float intercept = 7.0 - slope * (neutralVoltage - 1500.0) / (tempSlope / 3.0);
 
     // Calculate pH
-    float phValue = slope * (voltage - 1500.0) / (tempSlope / 3.0) + intercept; // y = mx + b
+    float rawPh = slope * (voltage - 1500.0) / (tempSlope / 3.0) + intercept; // y = mx + b
 
     // Debugging information
     Serial.print("Voltage: ");
     Serial.println(voltage);
-    Serial.print("Temperature: ");
-    Serial.println(temperature);
-    Serial.print("Slope: ");
-    Serial.println(slope);
-    Serial.print("Intercept: ");
-    Serial.println(intercept);
-    Serial.print("pH Value: ");
-    Serial.println(phValue);
-
-    return phValue;
+    Serial.print("Ph: ");
+    Serial.println(rawPh);
+    // Serial.print("Temperature: ");
+    // Serial.println(temperature);
+    // Serial.print("Slope: ");
+    // Serial.println(slope);
+    // Serial.print("Intercept: ");
+    // Serial.println(intercept);
+    // Serial.print("pH Value: ");
+    // Serial.println(phValue);
+    
+    return rawPh;
 }
 
 // Perform pH sensor calibration
@@ -43,8 +56,6 @@ void PHSensor::calibrate(const char *cmd)
     voltage = analogRead(pin) / 1024.0 * 5000;
     Serial.print("Voltage: ");
     Serial.println(voltage);
-
-    ph->calibration(voltage, temperature, cmd);
 }
 
 // Set the temperature for compensation
@@ -74,8 +85,6 @@ float PHSensor::getPHValue() const
 // Implement the initialize method
 void PHSensor::initialize()
 {
-
-    ph->begin();
 }
 
 // Implement the readData method
@@ -95,5 +104,5 @@ const char *PHSensor::getType()
 // Implement the getSensorName method
 const char *PHSensor::getSensorName()
 {
-    return "Gravity PH Sensor v1";
+    return "SEN0161";
 }

@@ -29,7 +29,7 @@ std::map<std::string, double> DHT11Sensor::readData()
     }
 
     data["temperature"] = temperature;
-    data["humidity"] = humidity; 
+    data["humidity"] = humidity;
     return data;
 }
 
@@ -40,5 +40,5 @@ const char *DHT11Sensor::getType()
 
 const char *DHT11Sensor::getSensorName()
 {
-    return "DHT11 Humidity and Temperature Sensor";
+    return "DHT11";
 }

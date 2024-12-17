@@ -16,7 +16,7 @@ AppContext::AppContext()
       webServerService(new WebServerService(*diskManager, *wifiService)),
       sensorPollTimer(2000),
       lcdUpdateTimer(1000),
-      dataSendTimer(10000),
+      dataSendTimer(5000),
       eventHandleTimer(1000) {}
 
 // No need to manually delete resources in the destructor
@@ -24,9 +24,7 @@ AppContext::~AppContext() = default;
 
 void AppContext::initialize()
 {
-    Serial.begin(115200);
-    // initialize
-    Wire.begin();
+
     dataCollector->initializeSensors();
 
     moduleManager->initializeModules(dataCollector);
@@ -47,6 +45,7 @@ void AppContext::initialize()
     {
         Serial.println("Credentials found, connecting to WiFi...");
         wifiService->connectToWiFi(ssid.c_str(), password.c_str());
+        // wifiService->turnToAccessPointMode("ESP8266", "12345678");
         activeMQService->initialize(brokerAddress.c_str(), 3011, clientId.c_str());
         activeMQService->subscribe("pump-on");
         activeMQService->subscribe("pump-off");
@@ -71,7 +70,6 @@ void AppContext::loop()
 {
     if (wifiService->mode == "ap")
     {
-        Serial.println("In AP mode");
         if (webServerService->getState() == "stopped")
         {
             webServerService->begin();
@@ -86,7 +84,9 @@ void AppContext::loop()
     activeMQService->loop();
     while (activeMQService->hasMessage())
     {
+
         auto message = activeMQService->getNextMessage();
+        Serial.println("Message received: " + message.topic + " - " + message.message);
         JsonDocument response;
         // split topic with "/" separator
         String topic = message.topic;
@@ -148,29 +148,31 @@ void AppContext::loop()
 
     if (sensorPollTimer.canRun())
     {
+        auto data = dataCollector->collectData();
 
         // moduleManager->lcd->update();
     }
 
     if (lcdUpdateTimer.canRun())
     {
-        moduleManager->lcd->update("Sensor Data");
+        // moduleManager->lcd->update("Sensor Data");
         moduleManager->lcd->displaySensorData();
     }
 
-    if (sensorPollTimer.canRun())
+    if (dataSendTimer.canRun())
     {
 
-        auto data = dataCollector->collectData();
-        if (data.size() > 0)
+        if (dataCollector->currentData.size() > 0)
         {
-            // auto json = dataToJson(data);
-            JsonDocument doc;
-            for (auto &entry : data)
+            JsonDocument jsonDoc;
+            jsonDoc["client-id"] = clientId;
+            for (const auto &entry : dataCollector->currentData)
             {
-                doc[entry.first] = entry.second;
+                jsonDoc[entry.first] = entry.second;
             }
-            activeMQService->publish("sensor-data", doc);
+            serializeJson(jsonDoc, Serial);
+            // deserializeJson(jsonDoc, "{\"temperature\": 25.0, \"humidity\": 50.0, \"ph\": 7.0, \"tds\": 100.0}");
+            activeMQService->publish("sensor-data", jsonDoc);
         }
     }
 }

@@ -12,6 +12,7 @@ WaterTemperatureSensor::~WaterTemperatureSensor()
 void WaterTemperatureSensor::initialize()
 {
     sensors.begin();
+    sensors.setResolution(11);
 }
 
 std::map<std::string, double> WaterTemperatureSensor::readData()
@@ -30,5 +31,5 @@ const char *WaterTemperatureSensor::getType()
 
 const char *WaterTemperatureSensor::getSensorName()
 {
-    return "DS18B20 Temperature Sensor";
+    return "DS18B20";
 }

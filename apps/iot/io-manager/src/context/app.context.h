@@ -1,6 +1,7 @@
 
 #ifndef APP_CONTEXT_H
 #define APP_CONTEXT_H
+#include <Wire.h>
 
 #include "services/data-collector/dataCollector.service.h"
 #include "services/module-manager/moduleManager.service.h"

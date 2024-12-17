@@ -1,6 +1,6 @@
 #include "tds.sensor.h"
 
-GravityTDSMeter::GravityTDSMeter(uint8_t pin, WaterTemperatureSensor *tempSensor) : pin(pin), tempSensor(tempSensor)
+GravityTDSMeter::GravityTDSMeter(uint8_t pin, WaterTemperatureSensor&tempSensor) : pin(pin), tempSensor(tempSensor)
 {
 }
 
@@ -18,7 +18,7 @@ void GravityTDSMeter::initialize()
 std::map<std::string, double> GravityTDSMeter::readData()
 {
     std::map<std::string, double> data;
-    double temperature = tempSensor->lastTemperature;
+    double temperature = tempSensor.lastTemperature;
     double tdsValue = readTDS(temperature);
     data["tds"] = tdsValue;
     return data;
@@ -31,7 +31,7 @@ const char *GravityTDSMeter::getType()
 
 const char *GravityTDSMeter::getSensorName()
 {
-    return "Gravity TDS Meter";
+    return "SEN0244";
 }
 
 double GravityTDSMeter::readTDS(double temperature)

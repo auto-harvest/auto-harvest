@@ -30,7 +30,7 @@ const char *WaterLevelSensor::getType()
 
 const char *WaterLevelSensor::getSensorName()
 {
-    return "Water Level Sensor";
+    return "HR0309-41";
 }
 
 bool WaterLevelSensor::isWaterLevelLow()

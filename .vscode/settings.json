@@ -86,7 +86,20 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "associative_base": "cpp",
+        "basic_definitions": "cpp",
+        "char_traits": "cpp",
+        "complex": "cpp",
+        "cwctype": "cpp",
+        "func_exception": "cpp",
+        "istream_helpers": "cpp",
+        "iterator_base": "cpp",
+        "numeric": "cpp",
+        "ostream_helpers": "cpp",
+        "serstream": "cpp",
+        "string_iostream": "cpp",
+        "valarray": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
 }

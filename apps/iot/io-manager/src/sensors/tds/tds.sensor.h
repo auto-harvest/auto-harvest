@@ -10,7 +10,7 @@
 class GravityTDSMeter : public AbstractSensor
 {
 public:
-    GravityTDSMeter(uint8_t pin, WaterTemperatureSensor *tempSensor);
+    GravityTDSMeter(uint8_t pin, WaterTemperatureSensor &tempSensor);
     ~GravityTDSMeter();
 
     void initialize() override;
@@ -20,9 +20,8 @@ public:
 
 private:
     uint8_t pin;
-    WaterTemperatureSensor *tempSensor;
+    WaterTemperatureSensor &tempSensor;
     double readTDS(double temperature);
-    
 };
 
 #endif // GRAVITYTDSMETER_H

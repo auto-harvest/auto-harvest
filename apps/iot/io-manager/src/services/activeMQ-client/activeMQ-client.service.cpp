@@ -72,6 +72,7 @@ void ActiveMQClientService::publish(const String &topic, const JsonDocument &mes
     }
 
     char buffer[256];
+    
     serializeJson(message, buffer);
 
     if (mqttClient.publish(topic.c_str(), buffer))

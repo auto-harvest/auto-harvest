@@ -11,7 +11,16 @@ import WebSocket from 'ws';
 import mqtt from 'mqtt';
 import { MqttClient } from 'mqtt';
 import mongoose from 'mongoose';
+import http from 'http';
+
+import { Server, Socket } from 'socket.io';
+import { io, startIo } from './services/io.service';
+import { startMqttClient } from './services/mqtt.service';
+import HistoricSensorLogService from './services/historicSensorLog.service';
 const app = express();
+//setup json text body
+app.use(express.json());
+export const server = http.createServer(app);
 
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
@@ -20,57 +29,16 @@ app.get('/api', (req, res) => {
 });
 
 const port = process.env.PORT || 3333;
-const server = app.listen(port, () => {
+server.listen(port, () => {
+  startIo();
+  startMqttClient();
   console.log(`Listening at http://localhost:${port}/api`);
+  HistoricSensorLogService.collectAndAggregateLogs();
 });
 
-const mqttClient: MqttClient = mqtt.connect('mqtt://localhost:3011');
-//create a queue
-const queue = [];
-//connect to the mqtt broker
-mqttClient.on('connect', () => {
-  mqttClient.subscribe('my/topic', function (err) {
-    if (!err) {
-      console.log('Subscribed to my/topic');
-    } else {
-      console.error('Failed to subscribe to my/topic');
-    }
-  });
-});
- 
-mqttClient.on('message', function (topic, message) {
-  // message is Buffer
-  console.log(`Received message on ${topic}: ${message.toString()}`);
-
-  // Send the message to all connected WebSocket clients
-  clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message.toString());
-    }
-  });
-});
-
-const wss = new WebSocket.Server({ port: 3000 });
-
-let clients = [];
-
-wss.on('connection', (ws) => {
-  clients.push(ws);
-
-  ws.on('message', (message) => {
-    console.log('Received: %s', message);
-  });
-
-  ws.on('close', () => {
-    clients = clients.filter((client) => client !== ws);
-  });
-
-  ws.send('Hello! Message from server!!');
-});
-
-const connectionString = `mongodb://myuser:mypassword@localhost:27017/api?authSource=admin`;
+const connectionString = `mongodb://myuser:mypassword@localhost:27017`;
 
 mongoose
-  .connect(connectionString)
+  .connect(connectionString, { dbName: 'auto-harvest' })
   .then(() => console.log('Database connected successfully'))
   .catch((err) => console.log(err));

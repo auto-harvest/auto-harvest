@@ -1,3 +1,5 @@
+#ifndef SINGLETON_H
+#define SINGLETON_H
 #include <Arduino.h>
 
 // Base Singleton class template
@@ -21,3 +23,5 @@ protected:
     Singleton() {}
     ~Singleton() {}
 };
+
+#endif // SINGLETON_H
