@@ -17,24 +17,30 @@ import { Server, Socket } from 'socket.io';
 import { io, startIo } from './services/io.service';
 import { startMqttClient } from './services/mqtt.service';
 import HistoricSensorLogService from './services/historicSensorLog.service';
+import { routes } from './routes/routes';
+import morgan from 'morgan';
+import cors from 'cors';
 const app = express();
+app.use(morgan('dev'));
 //setup json text body
-app.use(express.json());
-export const server = http.createServer(app);
 
+app.use(express.json());
+app.use(
+  cors({
+    origin: ['http://localhost:8081','https://autoharvest.ngrok.dev'],
+  })
+);
+export const server = http.createServer(app);
+app.use('/api', routes);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
-app.get('/api', (req, res) => {
-  res.send({ message: 'Welcome to report-server!' });
-});
-
 const port = process.env.PORT || 3333;
-server.listen(port, () => {
+app.listen(3333, '0.0.0.0', () => {
   startIo();
   startMqttClient();
   console.log(`Listening at http://localhost:${port}/api`);
-  HistoricSensorLogService.collectAndAggregateLogs();
 });
+server.listen(3333, () => {});
 
 const connectionString = `mongodb://myuser:mypassword@localhost:27017`;
 

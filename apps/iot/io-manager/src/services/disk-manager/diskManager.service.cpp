@@ -61,7 +61,7 @@ void DiskManagerService::remove(const String &key)
     {
         for (int i = 0; i < MAX_KEY_LENGTH + MAX_VALUE_LENGTH; i++)
         {
-            EEPROM.write(keyAddress + i, 0);
+            EEPROM.write(keyAddress + i, 0); 
         }
         EEPROM.end();
     }

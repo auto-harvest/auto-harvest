@@ -4,17 +4,18 @@ import { map, mergeMap, catchError } from 'rxjs/operators';
 import SensorLogService from './sensorLog.service'; // Import the service for saving logs
 import { ValueType } from '../models/sensorLog.model';
 import { io } from './io.service';
+import CollectorService from './collector.service';
 // MQTT Configuration
 const mqttConfig = {
-  brokerURL: 'mqtt://localhost:3011', // Replace with your MQTT broker URL
+  brokerURL: 'mqtt://34.105.172.73:3011', // Replace with your MQTT broker URL
   topic: 'sensor-data', // Topic to subscribe to
-};
-
+}; 
+const collectorService = new CollectorService();
 // Connect to the MQTT broker
 export let client: MqttClient;
 export const startMqttClient = () => {
   client = connect(mqttConfig.brokerURL);
-  client.on('connect', () => {
+  client.on('connect', () => { 
     console.log('Connected to MQTT broker.');
     client.subscribe(mqttConfig.topic, (err) => {
       if (err) {
@@ -40,8 +41,6 @@ export const startMqttClient = () => {
       map(({ message }) => JSON.parse(message)), // Parse the message as JSON
       mergeMap(async (sensorData: any) => {
         // Validate and process the message
-        const { type, value, timestamp } = sensorData;
-
         const clientId = sensorData['client-id'];
 
         const roomName = `controller:${clientId}`;
@@ -53,16 +52,15 @@ export const startMqttClient = () => {
         const promises = [];
         for (const key in sensorData) {
           promises.push(
-            SensorLogService.createSensorLog(
-              key as ValueType, // Cast to ValueType enum
-              sensorData[key],
-              new Date(),
-              clientId
-            )
+            collectorService.storeSensorLog({
+              type: key,
+              value: sensorData[key],
+              controller: clientId,
+            })
           );
         }
         return await Promise.all(promises);
-
+ 
         // Save the sensor log using the service
       }),
       catchError((error) => {
@@ -71,7 +69,8 @@ export const startMqttClient = () => {
       })
     )
     .subscribe({
-      next: (result) => console.log('Sensor log saved successfully:', result.count),
+      next: (result) =>
+        console.log('Sensor log saved successfully:', result.count),
       error: (err) => console.error('Error in subscription:', err),
     });
 };

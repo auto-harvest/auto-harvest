@@ -6,7 +6,7 @@ import {
 
 const router = express.Router();
 
-router.post('/logs', createSensorLog); // Create a new sensor log
-router.get('/logs', getSensorLogs); // Get sensor logs by type and date range
+router.post('/', createSensorLog); // Create a new sensor log
+router.get('/', getSensorLogs); // Get sensor logs by type and date range
 
 export default router;

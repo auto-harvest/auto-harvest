@@ -16,7 +16,7 @@ const AlertConfigurationSchema: Schema = new Schema(
     controllerSensor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'ControllerSensor',
-      required: true,
+      required: true, 
     },
     actionsKey: { type: String, required: true },
     min: { type: Number, required: true },

@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { server } from '../main';
 import jwt from 'jsonwebtoken';
+import userModel from '../models/user.model';
 
 export let io: Server;
 
@@ -13,6 +14,7 @@ export const startIo = () => {
   io.use((socket, next) => {
     const token = socket.handshake.query['token'];
     console.log(token);
+    console.log(jwt.decode(token));
     if (!token) {
       return next(new Error('Authentication error'));
     }
@@ -25,17 +27,24 @@ export const startIo = () => {
     });
   });
   io.on('connection', async (socket: Socket & { user: any }) => {
+    const user = await userModel.findOne({ _id: socket.user.id });
     console.log(socket.user);
     socket.on('disconnect', () => {
       console.log('user disconnected');
     });
- 
+
     socket.on('ping', () => {
       console.log('ping received');
       setTimeout(() => {
         socket.emit('pong', Date.now());
       }, 15000);
     });
-    await socket.join(['broadcast', 'controller:A0:20:A6:1C:7A:7A']);
+    console.log(
+      `User listens to broadcast and controller rooms (${user?.controllers.length})`
+    );
+    await socket.join([
+      'broadcast',
+      ...user.controllers.map((c) => `controller:${c}`),
+    ]);
   });
 };

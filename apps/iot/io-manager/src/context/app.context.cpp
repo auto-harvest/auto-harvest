@@ -36,16 +36,15 @@ void AppContext::initialize()
 
     clientId = wifiService->begin();
     Serial.println("Client ID: " + clientId);
-    delay(1000);
-    // diskManager.remove();
-    ssid = diskManager->read("ssid");
-    password = diskManager->read("password");
-    brokerAddress = diskManager->read("brokerAddress");
+    // diskManager->remove("ssid");
+    // diskManager->remove("password");
+    ssid = "COVID_19_5G_Hotspot_#421"; //diskManager->read("ssid");
+    password = "denkserw"; //diskManager->read("password");
+    brokerAddress = "mqtt://34.105.172.73:3011";
     if (ssid.length() > 0 && password.length() > 0)
     {
         Serial.println("Credentials found, connecting to WiFi...");
         wifiService->connectToWiFi(ssid.c_str(), password.c_str());
-        // wifiService->turnToAccessPointMode("ESP8266", "12345678");
         activeMQService->initialize(brokerAddress.c_str(), 3011, clientId.c_str());
         activeMQService->subscribe("pump-on");
         activeMQService->subscribe("pump-off");
