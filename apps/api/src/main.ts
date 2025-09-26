@@ -27,20 +27,19 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(
   cors({
-    origin: ['http://localhost:8081','https://autoharvest.ngrok.dev'],
+    origin: ['http://localhost:8081', 'https://autoharvest.ngrok.dev'],
   })
 );
-export const server = http.createServer(app);
 app.use('/api', routes);
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 const port = process.env.PORT || 3333;
-app.listen(3333, '0.0.0.0', () => {
+
+export const server = app.listen(+port, '0.0.0.0', null, () => {
   startIo();
   startMqttClient();
   console.log(`Listening at http://localhost:${port}/api`);
 });
-server.listen(3333, () => {});
 
 const connectionString = `mongodb://myuser:mypassword@localhost:27017`;
 

@@ -19,6 +19,28 @@
           "buildTarget": "report-server:build:production"
         }
       }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "yarn nx run report-server:build --configuration production",
+          "docker build -f apps/api/Dockerfile . -t report-server"
+        ]
+      }
+    },
+    "docker-tar-send": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "docker save report-server | gzip > report-server.tar.gz",
+          "scp -P 22 report-server.tar.gz mememachine@localhost:/home/mememachine/Documents/Server/Containers/Backend/report-server.tar.gz",
+          "ssh -p 22 mememachine@localhost 'docker load -i /home/mememachine/Documents/Server/Containers/Backend/report-server.tar.gz'",
+          "rm report-server.tar.gz"
+        ]
+      }
     }
   }
 }
