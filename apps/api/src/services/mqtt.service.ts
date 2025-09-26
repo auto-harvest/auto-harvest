@@ -7,15 +7,29 @@ import { io } from './io.service';
 import CollectorService from './collector.service';
 // MQTT Configuration
 const mqttConfig = {
-  brokerURL: 'mqtt://34.105.172.73:3011', // Replace with your MQTT broker URL
+  brokerURL: 'wss://mqtt.autoharvest.solutions', // Replace with your MQTT broker URL
   topic: 'sensor-data', // Topic to subscribe to
-}; 
+};
 const collectorService = new CollectorService();
 // Connect to the MQTT broker
 export let client: MqttClient;
 export const startMqttClient = () => {
-  client = connect(mqttConfig.brokerURL);
-  client.on('connect', () => { 
+  const client = connect(mqttConfig.brokerURL, {
+    clientId: 'nodejs-test-' + Math.random().toString(16).slice(2, 10),
+    username: 'yourUser',
+    password: 'yourPass',
+    protocolVersion: 4, // MQTT 3.1.1
+    keepalive: 60,
+    reconnectPeriod: 2000,
+
+    // 👇 important: advertise the MQTT subprotocol to Jetty/ActiveMQ
+    wsOptions: {
+      headers: { 'Sec-WebSocket-Protocol': 'mqtt' },
+      // Some environments prefer the 'ws' subprotocol field instead:
+      // protocol: "mqtt"
+    },
+  });
+  client.on('connect', () => {
     console.log('Connected to MQTT broker.');
     client.subscribe(mqttConfig.topic, (err) => {
       if (err) {
@@ -60,7 +74,7 @@ export const startMqttClient = () => {
           );
         }
         return await Promise.all(promises);
- 
+
         // Save the sensor log using the service
       }),
       catchError((error) => {
