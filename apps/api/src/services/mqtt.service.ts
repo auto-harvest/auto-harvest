@@ -21,7 +21,7 @@ export const startMqttClient = () => {
     protocolVersion: 4, // MQTT 3.1.1
     keepalive: 60,
     reconnectPeriod: 2000,
-
+    
     // 👇 important: advertise the MQTT subprotocol to Jetty/ActiveMQ
     wsOptions: {
       headers: { 'Sec-WebSocket-Protocol': 'mqtt' },
@@ -63,6 +63,7 @@ export const startMqttClient = () => {
         //clients.map((v) => v.emit('sensor-info', JSON.stringify(obj)));
         io.to(roomName).emit('sensor-info', JSON.stringify(sensorData));
         delete sensorData['client-id'];
+        lastLogs = sensorData;
         const promises = [];
         for (const key in sensorData) {
           promises.push(

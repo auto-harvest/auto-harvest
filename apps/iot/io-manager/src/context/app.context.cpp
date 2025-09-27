@@ -38,9 +38,9 @@ void AppContext::initialize()
     Serial.println("Client ID: " + clientId);
     // diskManager->remove("ssid");
     // diskManager->remove("password");
-    ssid = "COVID_19_5G_Hotspot_#421"; //diskManager->read("ssid");
+    ssid = "TI_EIXAME_TI_XASAME"; //diskManager->read("ssid");
     password = "denkserw"; //diskManager->read("password");
-    brokerAddress = "mqtt://34.105.172.73:3011";
+    brokerAddress = "mqtt://192.168.100.102:3011";
     if (ssid.length() > 0 && password.length() > 0)
     {
         Serial.println("Credentials found, connecting to WiFi...");

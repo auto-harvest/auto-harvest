@@ -26,12 +26,15 @@ float PHSensor::readPH()
     temperature = tempSensor.lastTemperature;
 
     // Adjust slope based on temperature (Nernst equation)
-    float tempSlope = 59.16 + 0.1984 * (temperature - 25.0); // Adjust slope in mV/pH per °C
-    float slope = (7.0 - 4.0) / ((neutralVoltage - 1500.0) / (tempSlope / 3.0) - (acidVoltage - 1500.0) / (tempSlope / 3.0));
-    float intercept = 7.0 - slope * (neutralVoltage - 1500.0) / (tempSlope / 3.0);
+
+    float k = 0.33; // sensitivity factor
+    float tempSlope = (59.16 + 0.1984 * (temperature - 25.0)) * k; // mV adjustment for given temperature
+
+    float slope = (7.0 - 4.0) / ((neutralVoltage - 1500.0) / tempSlope - (acidVoltage - 1500.0) / tempSlope);
+    float intercept = 7.0 - slope * (neutralVoltage - 1500.0) / (tempSlope);
 
     // Calculate pH
-    float rawPh = slope * (voltage - 1500.0) / (tempSlope / 3.0) + intercept; // y = mx + b
+    float rawPh = slope * ((voltage - 1500.0) / tempSlope) + intercept; // y = mx + b
 
     // Debugging information
     Serial.print("Voltage: ");
@@ -46,7 +49,7 @@ float PHSensor::readPH()
     // Serial.println(intercept);
     // Serial.print("pH Value: ");
     // Serial.println(phValue);
-    
+
     return rawPh;
 }
 

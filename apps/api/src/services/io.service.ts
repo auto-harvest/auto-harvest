@@ -1,17 +1,18 @@
 import { Server, Socket } from 'socket.io';
-import { server } from '../main';
 import jwt from 'jsonwebtoken';
 import userModel from '../models/user.model';
+import { IController } from '../models/controller.model';
 
 export let io: Server;
 
-export const startIo = () => {
+export const startIo = (server) => {
   io = new Server(server, {
     cors: {
       origin: '*',
     },
   });
   io.use((socket, next) => {
+    console.log('AAAAAAAAAAAAAAa');
     const token = socket.handshake.query['token'];
     console.log(token);
     console.log(jwt.decode(token));
@@ -26,25 +27,29 @@ export const startIo = () => {
       next();
     });
   });
+  io.on('error', async (socket) => {
+    console.log(socket);
+  });
   io.on('connection', async (socket: Socket & { user: any }) => {
-    const user = await userModel.findOne({ _id: socket.user.id });
-    console.log(socket.user);
+    const user = await userModel.findOne({ _id: socket.user.id }).populate('controllers').exec();
+    console.log(socket.user,user);
     socket.on('disconnect', () => {
       console.log('user disconnected');
     });
-
+    console.log(user);
     socket.on('ping', () => {
       console.log('ping received');
       setTimeout(() => {
         socket.emit('pong', Date.now());
       }, 15000);
     });
-    console.log(
+    console.log( 
       `User listens to broadcast and controller rooms (${user?.controllers.length})`
     );
     await socket.join([
       'broadcast',
-      ...user.controllers.map((c) => `controller:${c}`),
+      ...user.controllers.map((c) => `controller:${(c as unknown as IController).code}`),
     ]);
+    socket.emit("rooms", Array.from(socket.rooms.entries())); 
   });
 };

@@ -45,7 +45,9 @@ double GravityTDSMeter::readTDS(double temperature)
     // Calculate the TDS value using the voltage and temperature
     double compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);
     double compensationVoltage = voltage / compensationCoefficient;
-    double tdsValue = (133.42 * compensationVoltage * compensationVoltage * compensationVoltage - 255.86 * compensationVoltage * compensationVoltage + 857.39 * compensationVoltage) * 0.5; // TDS conversion factor
+    double tdsValue = (133.42 * compensationVoltage * compensationVoltage * compensationVoltage 
+        - 255.86 * compensationVoltage * compensationVoltage 
+        + 857.39 * compensationVoltage) * 0.5; // TDS conversion factor
 
     return tdsValue;
 }

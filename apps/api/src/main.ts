@@ -5,25 +5,22 @@
 
 import express from 'express';
 import * as path from 'path';
-
-import WebSocket from 'ws';
-//connect to mqtt
-import mqtt from 'mqtt';
-import { MqttClient } from 'mqtt';
-import mongoose from 'mongoose';
 import http from 'http';
 
-import { Server, Socket } from 'socket.io';
-import { io, startIo } from './services/io.service';
-import { startMqttClient } from './services/mqtt.service';
-import HistoricSensorLogService from './services/historicSensorLog.service';
-import { routes } from './routes/routes';
+import mqtt from 'mqtt';
+import mongoose from 'mongoose';
+
 import morgan from 'morgan';
 import cors from 'cors';
-const app = express();
-app.use(morgan('dev'));
-//setup json text body
 
+import { startIo } from './services/io.service';
+import { lastLogs, startMqttClient } from './services/mqtt.service';
+import { routes } from './routes/routes';
+
+// --- Setup express app ---
+const app = express();
+
+app.use(morgan('dev'));
 app.use(express.json());
 app.use(
   cors({
@@ -31,19 +28,29 @@ app.use(
   })
 );
 app.use('/api', routes);
+app.use('/last-logs', (req, res) => {
+  res.json(lastLogs);
+});
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
+// --- Create HTTP server and attach express ---
+
+
+
+// --- Start server ---
 const port = process.env.PORT || 3333;
 
 export const server = app.listen(+port, '0.0.0.0', null, () => {
-  startIo();
+  startIo(server);
   startMqttClient();
   console.log(`Listening at http://localhost:${port}/api`);
 });
 
-const connectionString = `mongodb://myuser:mypassword@localhost:27017`;
+// --- Connect to MongoDB ---
+const connectionString = `mongodb://myuser:mypassword@192.168.100.102:27017`;
 
 mongoose
   .connect(connectionString, { dbName: 'auto-harvest' })
   .then(() => console.log('Database connected successfully'))
-  .catch((err) => console.log(err));
+  .catch((err) => console.error('MongoDB connection error:', err));
+ 

@@ -1,36 +1,86 @@
 name: CI
-
 on:
   push:
     branches:
+      # Change this if your primary branch is not master
       - master
-  pull_request:
 
 permissions:
   actions: read
   contents: read
-
+  id-token: write
 jobs:
   main:
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Connect your workspace on nx.app and uncomment this to enable task distribution.
-      # The "--stop-agents-after" is optional, but allows idle agents to shut down once the "build" targets have been requested
-      # - run: npx nx-cloud start-ci-run --distribute-on="5 linux-medium-js" --stop-agents-after="build"
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SECRET }} #<-- Add your GCP credentials here.
 
-      # Cache node_modules
+      - name: Make backend ci script executable
+        run: chmod +x ./ci/scripts/build.sh
+
+
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v3
+        id: install-kubectl
+        with:
+          version: 'latest'
+
+      - uses: "google-github-actions/setup-gcloud@v2"
+        with:
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Authenticate to GKE cluster
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: mega-tetra-cluster
+          location: europe-west3
+          
+      - name: Check plugin version
+        run: gke-gcloud-auth-plugin --version
+
+      - name: Show Base and Head SHAs
+        run: |
+          echo "Base SHA: ${{ github.sha }}~1"
+          echo "Head SHA: ${{ github.sha }}"
+          
+      - name : Configure Docker
+        run: gcloud auth configure-docker europe-west3-docker.pkg.dev
+
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'yarn'
 
-      - run: npm ci
-      - uses: nrwl/nx-set-shas@v4
+      - name: Get branch name (pull request)
+        run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
+        id: 'BRANCH'
 
-      # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
-      # - run: npx nx-cloud record -- echo Hello World
-      - run: npx nx affected -t lint test build
+      - name: Cache node modules
+        id: cache-yarn
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: |
+            **/node_modules
+            **/.eslintcache
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-build_stage-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-build_stage-${{ env.cache-name }}-${{ runner.os }}-build-${{ runner.os }}-
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+
+
+      - run: npx nx affected -t docker-push bucket-push --base=${{ steps.BRANCH.outputs.branch }}~1 --head=${{ steps.BRANCH.outputs.branch }} --no-cloud
+        env:
+          NX_HEAD: ${{ github.sha }}
+          BRANCH: ${{ steps.BRANCH.outputs.branch }}

@@ -4,6 +4,6 @@ import sensorLogRoutes from './sensorLog.routes';
 import { controllerRoutes } from './controller.routes';
 const router = express.Router();
 export const routes = router
-  .use('/', userRoutes)
+  .use('', userRoutes)
   .use('/logs', sensorLogRoutes)
   .use('/controller', controllerRoutes);

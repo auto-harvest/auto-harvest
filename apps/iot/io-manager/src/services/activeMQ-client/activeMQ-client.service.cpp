@@ -29,7 +29,7 @@ void ActiveMQClientService::initialize(const char *brokerAddress, int port, cons
 {
     // Set the static instance
     Serial.println("Initializing ActiveMQ client service. " + String(brokerAddress) + " " + String(port) + " " + String(clientId));
-    mqttClient.setServer("34.105.172.73", 3011);
+    mqttClient.setServer("192.168.100.102", 3011);
 
     // Attempt to connect to the MQTT broker
     while (!mqttClient.connected())

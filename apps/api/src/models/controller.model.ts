@@ -18,6 +18,7 @@ const ControllerSchema: Schema = new Schema(
       default: 'n/a',
       required: true,
     },
+
     systemStatus: {
       type: String,
       enum: ['on', 'off'],

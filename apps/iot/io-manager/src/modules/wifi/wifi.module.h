@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "module.abstract.class.h"
-#include "WifiEspAt.h"
+#include "WiFi.h"
 class WiFiModule : public AbstractModule
 {
 public:
