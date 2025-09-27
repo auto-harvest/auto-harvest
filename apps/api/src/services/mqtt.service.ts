@@ -10,11 +10,19 @@ const mqttConfig = {
   brokerURL: 'wss://mqtt.autoharvest.solutions', // Replace with your MQTT broker URL
   topic: 'sensor-data', // Topic to subscribe to
 };
+export let lastLogs: any = {};
 const collectorService = new CollectorService();
 // Connect to the MQTT broker
 export let client: MqttClient;
+export const sendMessage = (topic: string, message: string) => {
+  if (client && client.connected) {
+    client.publish(topic, message);
+  } else {
+    console.error('MQTT client is not connected.');
+  }
+};
 export const startMqttClient = () => {
-  const client = connect(mqttConfig.brokerURL, {
+   client = connect(mqttConfig.brokerURL, {
     clientId: 'nodejs-test-' + Math.random().toString(16).slice(2, 10),
     username: 'yourUser',
     password: 'yourPass',
@@ -63,6 +71,9 @@ export const startMqttClient = () => {
         //clients.map((v) => v.emit('sensor-info', JSON.stringify(obj)));
         io.to(roomName).emit('sensor-info', JSON.stringify(sensorData));
         delete sensorData['client-id'];
+        delete sensorData['flow-rate-hz'];
+        delete sensorData['flow-rate-liters'];
+        delete sensorData['liters-per-minute'];
         lastLogs = sensorData;
         const promises = [];
         for (const key in sensorData) {

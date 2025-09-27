@@ -24,7 +24,11 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(
   cors({
-    origin: ['http://localhost:8081', 'https://autoharvest.ngrok.dev'],
+    origin: [
+      'http://localhost:8081',
+      'https://autoharvest.ngrok.dev',
+      'http://localhost:8082',
+    ],
   })
 );
 app.use('/api', routes);
@@ -34,8 +38,6 @@ app.use('/last-logs', (req, res) => {
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // --- Create HTTP server and attach express ---
-
-
 
 // --- Start server ---
 const port = process.env.PORT || 3333;
@@ -53,4 +55,3 @@ mongoose
   .connect(connectionString, { dbName: 'auto-harvest' })
   .then(() => console.log('Database connected successfully'))
   .catch((err) => console.error('MongoDB connection error:', err));
- 

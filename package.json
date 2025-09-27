@@ -2,7 +2,10 @@
   "name": "@auto-harvest/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "tunnel": "cloudflared access tcp --hostname ssh.autoharvest.solutions --url localhost:22",
+    "gen-key": "ssh-keygen -t ed25519 -C \"mememachine@localhost\" -f ~/.ssh/ci_key; ssh-copy-id -i ~/.ssh/ci_key.pub mememachine@localhost"
+  },
   "private": true,
   "dependencies": {
     "@expo/devcert": "^1.1.4",

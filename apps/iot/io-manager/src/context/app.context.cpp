@@ -14,9 +14,9 @@ AppContext::AppContext()
       diskManager(new DiskManagerService()),
       wifiService(new WiFiService()),
       webServerService(new WebServerService(*diskManager, *wifiService)),
-      sensorPollTimer(2000),
+      sensorPollTimer(1000),
       lcdUpdateTimer(1000),
-      dataSendTimer(5000),
+      dataSendTimer(2000),
       eventHandleTimer(1000) {}
 
 // No need to manually delete resources in the destructor
