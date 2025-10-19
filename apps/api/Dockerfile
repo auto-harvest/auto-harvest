@@ -4,20 +4,38 @@
 # Tip: Modify "docker-build" options in project.json to change docker build args.
 #
 # Run the container with `docker run -p 3000:3000 -t report-server`.
-FROM docker.io/node:lts-alpine
 
-ENV PORT=3333
+# Stage 1: Install minimal dependencies
+FROM docker.io/node:lts-alpine AS deps
 
 WORKDIR /app
 
+# Copy the generated package.json (contains only required dependencies)
+COPY dist/apps/api/package.json ./
+
+# Install only the minimal production dependencies with yarn
+RUN yarn install --production --frozen-lockfile && \
+    yarn cache clean
+
+# Stage 2: Final runtime image
+FROM docker.io/node:lts-alpine
+
+ENV PORT=3333
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Create non-root user
 RUN addgroup --system report-server && \
     adduser --system -G report-server report-server
-COPY package.json package-lock.json ./report-server/
-COPY dist/apps/api ./report-server/
-RUN chown -R report-server:report-server .
-RUN ls -la report-server
-# You can remove this install step if you build with `--bundle` option.
-# The bundled output will include external dependencies.
-RUN npm --prefix report-server --omit=dev -f install
 
-CMD [ "node", "report-server/main.js" ]
+# Copy minimal dependencies from deps stage
+COPY --from=deps --chown=report-server:report-server /app/node_modules ./node_modules
+
+# Copy bundled application
+COPY --chown=report-server:report-server dist/apps/api ./
+
+# Switch to non-root user
+USER report-server
+
+CMD [ "node", "main.js" ]

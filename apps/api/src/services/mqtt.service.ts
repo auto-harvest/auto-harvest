@@ -1,14 +1,73 @@
 import { connect, MqttClient } from 'mqtt';
 import { fromEvent, Observable } from 'rxjs';
 import { map, mergeMap, catchError } from 'rxjs/operators';
-import SensorLogService from './sensorLog.service'; // Import the service for saving logs
-import { ValueType } from '../models/sensorLog.model';
 import { io } from './io.service';
 import CollectorService from './collector.service';
-// MQTT Configuration
+
+// Sensor validation ranges
+const SENSOR_VALIDATION_RANGES: Record<string, { min: number; max: number; allowZero?: boolean }> = {
+  // pH sensors (both uppercase and lowercase variants)
+  'pH': { min: 0, max: 14 },
+  'ph': { min: 0, max: 14 },
+
+  // EC/TDS sensors
+  'ec': { min: 0.1, max: 10000 }, // EC in µS/cm, should be positive
+  'tds': { min: 0.1, max: 5000 }, // TDS (Total Dissolved Solids) in ppm
+
+  // Temperature sensors
+  'temp': { min: -10, max: 60 }, // Air temperature in Celsius
+  'water-temperature': { min: 0, max: 50 }, // Water temperature in Celsius
+
+  // Humidity
+  'hum': { min: 1, max: 100 }, // Humidity percentage (0 indicates sensor not connected)
+
+  // Flow sensors
+  'flow': { min: 0, max: 1000, allowZero: true }, // Flow rate, can be 0 when no flow
+  'pulses': { min: 0, max: 1000000, allowZero: true }, // Flow pulses counter
+
+  // Level and pump states
+  'water-level': { min: 0, max: 100, allowZero: true }, // Water level percentage (0 = empty is valid)
+  'water-pump': { min: 0, max: 1, allowZero: true }, // Pump state (0 = off, 1 = on)
+  'air-pump': { min: 0, max: 1, allowZero: true }, // Air pump state (0 = off, 1 = on)
+};
+
+/**
+ * Validates sensor data to ensure values are within acceptable ranges
+ * @param type - Sensor type
+ * @param value - Sensor value
+ * @returns true if valid, false otherwise
+ */
+function isValidSensorValue(type: string, value: number): boolean {
+  const validation = SENSOR_VALIDATION_RANGES[type];
+
+  if (!validation) {
+    console.warn(`No validation range defined for sensor type: ${type}`);
+    return true; // Allow unknown types to pass through
+  }
+
+  // Check if value is a valid number
+  if (typeof value !== 'number' || isNaN(value)) {
+    return false;
+  }
+
+  // Special case: if zero is not allowed and value is 0
+  if (!validation.allowZero && value === 0) {
+    return false;
+  }
+
+  // Check if value is within range
+  if (value < validation.min || value > validation.max) {
+    return false;
+  }
+
+  return true;
+}
+// MQTT Configuration from environment variables
 const mqttConfig = {
-  brokerURL: 'wss://mqtt.autoharvest.solutions', // Replace with your MQTT broker URL
-  topic: 'sensor-data', // Topic to subscribe to
+  brokerURL: 'mqtt://192.168.100.102:3011', // Classic MQTT protocol
+  topic: process.env.MQTT_TOPIC || 'sensor-data',
+  username: process.env.MQTT_USERNAME || 'yourUser',
+  password: process.env.MQTT_PASSWORD || 'yourPass',
 };
 export let lastLogs: any = {};
 const collectorService = new CollectorService();
@@ -22,29 +81,45 @@ export const sendMessage = (topic: string, message: string) => {
   }
 };
 export const startMqttClient = () => {
+  // Generate unique client ID for each instance
+  const uniqueClientId = `autoharvest-api-${process.env.INSTANCE_ID || Math.random().toString(16).slice(2, 10)}`;
+
+  console.log('Connecting to MQTT broker:', mqttConfig.brokerURL);
+  console.log('Client ID:', uniqueClientId);
+
   client = connect(mqttConfig.brokerURL, {
-    clientId: 'nodejs-test-' + Math.random().toString(16).slice(2, 10),
-    username: 'yourUser',
-    password: 'yourPass',
+    clientId: uniqueClientId,
+    username: mqttConfig.username,
+    password: mqttConfig.password,
     protocolVersion: 4, // MQTT 3.1.1
     keepalive: 60,
-    reconnectPeriod: 2000,
-
-    wsOptions: {
-      headers: { 'Sec-WebSocket-Protocol': 'mqtt' },
-      // Some environments prefer the 'ws' subprotocol field instead:
-      // protocol: "mqtt"
-    },
+    reconnectPeriod: 5000, // Retry every 5 seconds
+    connectTimeout: 30000, // 30 second timeout
+    clean: true, // Clean session
   });
   client.on('connect', () => {
-    console.log('Connected to MQTT broker.');
-    client.subscribe(mqttConfig.topic, (err) => {
+    console.log(`✅ Connected to MQTT broker with client ID: ${uniqueClientId}`);
+
+    // Subscribe with QoS 1 for reliable delivery
+    client.subscribe(mqttConfig.topic, { qos: 1 }, (err) => {
       if (err) {
         console.error('Failed to subscribe to topic:', err);
       } else {
-        console.log(`Subscribed to topic: ${mqttConfig.topic}`);
+        console.log(`✅ Subscribed to topic: ${mqttConfig.topic} with QoS 1`);
       }
     });
+  });
+
+  client.on('reconnect', () => {
+    console.log('🔄 Reconnecting to MQTT broker...');
+  });
+
+  client.on('error', (error: any) => {
+    console.error('❌ MQTT error:', error.message || error);
+  });
+
+  client.on('offline', () => {
+    console.warn('⚠️  MQTT client is offline');
   });
 
   // Create an observable from MQTT messages
@@ -64,34 +139,59 @@ export const startMqttClient = () => {
         // Validate and process the message
         const clientId = sensorData['client-id'];
 
-        const roomName = `controller:${clientId}`;
-        console.log(roomName);
-        //
-        //clients.map((v) => v.emit('sensor-info', JSON.stringify(obj)));
+        if (!clientId) {
+          console.error('Received sensor data without client-id'); 
+          return [];
+        }
 
-        //print all sockets
-        console.log('Sockets:', await io.in(roomName).allSockets());
+        // Remove unnecessary fields before validation
         delete sensorData['client-id'];
         delete sensorData['flow-rate-hz'];
         delete sensorData['flow-rate-liters'];
-        sensorData['liters-per-minute'];
-        delete sensorData['pulses'];
-        sensorData['vpd'] = +vpdKPa({
-          airTempC: sensorData['temperature'],
-          rhPct: sensorData['humidity'],
-        }).toFixed(2);
-        console.log('Sensor Data:', sensorData);
-        lastLogs = sensorData;
-        io.to(roomName).emit('sensor-info', JSON.stringify(sensorData));
-        io.of('/report-server')
-          .to(roomName)
-          .emit('sensor-info', JSON.stringify(sensorData));
-        const promises = [];
+        delete sensorData['liters-per-minute'];
+
+        // Validate and filter sensor data
+        const validatedData: Record<string, number> = {};
+        const invalidData: Record<string, number> = {};
+
         for (const key in sensorData) {
+          const value = sensorData[key];
+          if (isValidSensorValue(key, value)) {
+            validatedData[key] = value;
+          } else {
+            invalidData[key] = value;
+            console.warn(`Invalid sensor value detected for controller ${clientId}: ${key}=${value} (out of acceptable range)`);
+          }
+        }
+
+        // If no valid data, skip broadcasting and storage
+        if (Object.keys(validatedData).length === 0) {
+          console.warn(`No valid sensor data received from controller ${clientId}. All values invalid:`, invalidData);
+          return [];
+        }
+
+        // Store the validated data
+        lastLogs = validatedData;
+
+        // Broadcast only validated sensor data to connected users
+        if (!io) {
+          console.error('Socket.io not initialized, cannot broadcast sensor data');
+        } else {
+          const roomName = `controller:${clientId}`;
+          console.log(`Broadcasting validated sensor data to room: ${roomName}`, validatedData);
+          if (Object.keys(invalidData).length > 0) {
+            console.log(`Filtered out invalid values:`, invalidData);
+          }
+          io.to(roomName).emit('sensor-info', validatedData);
+        }
+
+        // Store only valid sensor values in database
+        const promises = [];
+        for (const key in validatedData) {
           promises.push(
             collectorService.storeSensorLog({
               type: key,
-              value: sensorData[key],
+              value: validatedData[key],
               controller: clientId,
             })
           );

@@ -31,4 +31,9 @@ const SensorLogSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Compound index for efficient queries in aggregation
+SensorLogSchema.index({ timestamp: 1, type: 1, controller: 1 });
+// Index for finding latest log by type and controller
+SensorLogSchema.index({ type: 1, controller: 1, timestamp: -1 });
+
 export default mongoose.model<ISensorLog>('SensorLog', SensorLogSchema);

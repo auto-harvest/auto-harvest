@@ -36,8 +36,8 @@
         "parallel": false,
         "commands": [
           "docker save report-server | gzip > report-server.tar.gz",
-          "scp -i ~/.ssh/ci_key -P 22 report-server.tar.gz mememachine@localhost:/home/mememachine/Documents/Server/Containers/Report-Server/report-server.tar.gz",
-          "ssh -i ~/.ssh/ci_key -p 22 mememachine@localhost 'docker load -i /home/mememachine/Documents/Server/Containers/Report-Server/report-server.tar.gz;cd /home/mememachine/Documents/Server/Containers; docker compose up -d --force-recreate report-server'",
+          "scp -i ~/.ssh/ci_key -P 22 report-server.tar.gz mememachine@192.168.100.102:/home/mememachine/Documents/Server/Containers/Report-Server/report-server.tar.gz",
+          "ssh -i ~/.ssh/ci_key -p 22 mememachine@192.168.100.102 'docker load -i /home/mememachine/Documents/Server/Containers/Report-Server/report-server.tar.gz;cd /home/mememachine/Documents/Server/Containers; docker compose up -d --force-recreate report-server'",
           "rm report-server.tar.gz"
         ]
       }

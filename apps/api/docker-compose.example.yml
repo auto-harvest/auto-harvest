@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../../  # Build from root to access dist/apps/api
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3333:3333"
+    environment:
+      # MQTT Configuration - IMPORTANT: Set these correctly for production
+      # Use mqtt:// for standard MQTT, mqtts:// for TLS
+      # Standard ports: 1883 (unencrypted), 8883 (TLS)
+      MQTT_BROKER_URL: "mqtt://192.168.100.102:1883"
+      MQTT_TOPIC: "sensor-data"
+      MQTT_USERNAME: "yourUser"
+      MQTT_PASSWORD: "yourPass"
+
+      # Instance configuration (for multi-instance deployment)
+      INSTANCE_ID: "instance-1"
+
+      # Server configuration
+      PORT: "3333"
+      NODE_ENV: "production"
+
+      # MongoDB configuration
+      # Use service name 'mongo' if running MongoDB in same docker-compose
+      # Or use external host/IP if MongoDB is running elsewhere
+      MONGODB_CONNECTION_STRING: "mongodb://myuser:mypassword@mongo:27017"
+      MONGODB_DATABASE: "auto-harvest"
+
+      # JWT Secret
+      JWT_SECRET: "your_jwt_secret_here"
+
+    # Network mode host may help with DNS resolution in some environments
+    # network_mode: "host"  # Uncomment if having DNS issues
+
+    # DNS configuration (if needed)
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+    restart: unless-stopped
+
+    depends_on:
+      - mongo
+
+  # Optional: Include MongoDB if not using external database
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: myuser
+      MONGO_INITDB_ROOT_PASSWORD: mypassword
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
