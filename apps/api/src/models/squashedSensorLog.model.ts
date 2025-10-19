@@ -24,7 +24,7 @@ export const SquashedSensorLogSchema: Schema = new Schema(
     controller: { type: String, required: true },
     variance: { type: Number, required: true },
     median: { type: Number, required: true },
-    average: { type: Number, required: true }, 
+    average: { type: Number, required: true },
     datapoints: { type: Number, required: true },
     min: {
       date: { type: Date, required: true },
@@ -36,6 +36,16 @@ export const SquashedSensorLogSchema: Schema = new Schema(
     },
   },
   { timestamps: true }
+);
+
+// Index for finding last squashed log by interval
+SquashedSensorLogSchema.index({ interval: 1, timestamp: -1 });
+// Compound index for querying by type, controller, and interval
+SquashedSensorLogSchema.index({ type: 1, controller: 1, interval: 1, timestamp: -1 });
+// Unique index to prevent duplicate squashed logs for the same time period
+SquashedSensorLogSchema.index(
+  { type: 1, controller: 1, interval: 1, timestamp: 1 },
+  { unique: true }
 );
 
 const SquashedSensorLog = mongoose.model<ISquashedSensorLog>(
