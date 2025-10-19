@@ -1,5 +1,7 @@
+import controllerModel from '../models/controller.model';
 import SensorLog, { ISensorLog } from '../models/sensorLog.model';
-
+import SquashedSensorLog from '../models/squashedSensorLog.model';
+import userModel from '../models/user.model';
 /**
  * Service for managing sensor logs.
  */
@@ -23,7 +25,7 @@ export default class SensorLogService {
         type,
         value,
         timestamp: timestamp || new Date(),
-        controller,
+        controller, 
       });
 
       return await sensorLog.save();
@@ -44,16 +46,72 @@ export default class SensorLogService {
   static async getSensorLogsByTypeAndDateRange(
     type: ISensorLog['type'],
     startDate: Date,
-    endDate: Date
-  ): Promise<ISensorLog[]> {
+    endDate: Date,
+    interval: 'hour' | 'day' | 'week',
+    userId: string
+  ) {
     try {
-      return await SensorLog.find({
+      const user = await userModel
+        .findById(userId)
+        .populate('controllers')
+        .exec();
+      const data = await SquashedSensorLog.find({
         type,
         timestamp: { $gte: startDate, $lte: endDate },
+        interval,
+        controller: { $in: user?.controllers.map((v: any) => v.code) || [] },
       }).sort({ timestamp: 1 }); // Sort by ascending timestamp
+      console.log(
+        user,
+        {
+          type,
+          timestamp: { $gte: startDate, $lte: endDate },
+          interval,
+          controller: { $in: user?.controllers || [] },
+        },
+        data
+      );
+      return data;
     } catch (error) {
       console.error('Error while fetching sensor logs:', error);
       throw new Error('Failed to fetch sensor logs');
     }
+  }
+  static async getSquashedByTypeAndRange(params: {
+    type: string;
+    controller: string;
+    interval: 'hour' | 'day' | 'week';
+    start: Date; // inclusive
+    endExclusive: Date; // exclusive
+  }) {
+    const { type, controller: id, interval, start, endExclusive } = params;
+    const controller = await controllerModel.findById(id);
+    // Query pre-squashed collection 
+    const docs = await (SquashedSensorLog as any)
+      .find(
+        {
+          interval,
+          type,
+          timestamp: { $gte: start, $lt: endExclusive },
+        },
+        {
+          _id: 0,
+          interval: 1,
+          type: 1,
+          controller: 1,
+          timestamp: 1,
+          averageValue: 1,
+          average: 1,
+          variance: 1,
+          median: 1,
+          datapoints: 1,
+          min: 1,
+          max: 1, 
+        }
+      )
+      .sort({ timestamp: 1 })
+      .lean();
+
+    return docs;
   }
 }

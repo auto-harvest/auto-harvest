@@ -22,15 +22,14 @@ export const sendMessage = (topic: string, message: string) => {
   }
 };
 export const startMqttClient = () => {
-   client = connect(mqttConfig.brokerURL, {
+  client = connect(mqttConfig.brokerURL, {
     clientId: 'nodejs-test-' + Math.random().toString(16).slice(2, 10),
     username: 'yourUser',
     password: 'yourPass',
     protocolVersion: 4, // MQTT 3.1.1
     keepalive: 60,
     reconnectPeriod: 2000,
-    
-    // 👇 important: advertise the MQTT subprotocol to Jetty/ActiveMQ
+
     wsOptions: {
       headers: { 'Sec-WebSocket-Protocol': 'mqtt' },
       // Some environments prefer the 'ws' subprotocol field instead:
@@ -69,12 +68,24 @@ export const startMqttClient = () => {
         console.log(roomName);
         //
         //clients.map((v) => v.emit('sensor-info', JSON.stringify(obj)));
-        io.to(roomName).emit('sensor-info', JSON.stringify(sensorData));
+
+        //print all sockets
+        console.log('Sockets:', await io.in(roomName).allSockets());
         delete sensorData['client-id'];
         delete sensorData['flow-rate-hz'];
         delete sensorData['flow-rate-liters'];
-        delete sensorData['liters-per-minute'];
+        sensorData['liters-per-minute'];
+        delete sensorData['pulses'];
+        sensorData['vpd'] = +vpdKPa({
+          airTempC: sensorData['temperature'],
+          rhPct: sensorData['humidity'],
+        }).toFixed(2);
+        console.log('Sensor Data:', sensorData);
         lastLogs = sensorData;
+        io.to(roomName).emit('sensor-info', JSON.stringify(sensorData));
+        io.of('/report-server')
+          .to(roomName)
+          .emit('sensor-info', JSON.stringify(sensorData));
         const promises = [];
         for (const key in sensorData) {
           promises.push(
@@ -100,3 +111,22 @@ export const startMqttClient = () => {
       error: (err) => console.error('Error in subscription:', err),
     });
 };
+
+// Saturation vapor pressure (kPa) @ Celsius
+const es = (Tc: number) => 0.6108 * Math.exp((17.27 * Tc) / (Tc + 237.3));
+
+/** Leaf VPD (preferred). If leafTempC is missing, estimate leaf ≈ air - 1°C. */
+export function vpdKPa({
+  airTempC,
+  rhPct,
+  leafTempC,
+}: {
+  airTempC: number;
+  rhPct: number;
+  leafTempC?: number;
+}): number {
+  const rh = Math.min(100, Math.max(0, rhPct)) / 100; // clamp
+  const ea = rh * es(airTempC); // actual vapor pressure
+  const eLeaf = es(leafTempC ?? airTempC - 1); // leaf saturation VP
+  return Math.max(0, eLeaf - ea); // kPa
+}

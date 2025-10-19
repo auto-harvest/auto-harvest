@@ -5,6 +5,7 @@ export enum ValueType {
   TEMP = 'temp',
   HUM = 'hum',
   FLOW = 'flow',
+  VPD = 'vpd',
 }
 export interface ISensorLog extends Document {
   type: ValueType; // The type of data being logged (e.g., pH, temperature, etc.)

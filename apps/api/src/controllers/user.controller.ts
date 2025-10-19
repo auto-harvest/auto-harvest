@@ -32,7 +32,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).send({ message: 'Invalid password' });
     }
     const token = jwt.sign({ id: user._id, role: user.role }, secret, {
-      expiresIn: '1h',
+      expiresIn: '365d',
     });
     delete user.password;
     res.status(200).send({ message: 'Login successful', token });

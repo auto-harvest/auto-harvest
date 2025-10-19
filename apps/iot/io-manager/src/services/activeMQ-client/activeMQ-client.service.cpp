@@ -33,18 +33,18 @@ void ActiveMQClientService::initialize(const char *brokerAddress, int port, cons
 
     // Attempt to connect to the MQTT broker
     while (!mqttClient.connected())
-    {
+    { 
         Serial.println("Connecting to ActiveMQ broker with clientId: " + String(clientId));
         if (mqttClient.connect(clientId))
         {
-            Serial.println("Connected to ActiveMQ broker.");
+            Serial.println("Connected to ActiveMQ broker."); 
         }
         else
         {
             Serial.print("Failed to connect. Retry in 5 seconds. Error code: ");
             Serial.println(mqttClient.state());
             delay(5000);
-        }
+        } 
     }
 }
 

@@ -42,5 +42,8 @@ const SquashedSensorLog = mongoose.model<ISquashedSensorLog>(
   'SquashedSensorLog',
   SquashedSensorLogSchema
 );
-
+SquashedSensorLogSchema.index(
+  { interval: 1, controller: 1, type: 1, timestamp: 1 },
+  { unique: true, name: 'uniq_interval_controller_type_bucket' }
+);
 export default SquashedSensorLog;
