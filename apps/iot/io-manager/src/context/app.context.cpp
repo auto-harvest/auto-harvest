@@ -1,4 +1,5 @@
 #include "app.context.h"
+#include "config.h"
 // Replace raw pointers with UniquePtr
 UniquePtr<ActiveMQClientService> activeMQService;
 UniquePtr<DataCollector> dataCollector;
@@ -15,7 +16,7 @@ AppContext::AppContext()
       wifiService(new WiFiService()),
       webServerService(new WebServerService(*diskManager, *wifiService)),
       sensorPollTimer(1000),
-      lcdUpdateTimer(1000),
+      lcdUpdateTimer(2000),
       dataSendTimer(2000),
       eventHandleTimer(1000) {}
 
@@ -27,7 +28,7 @@ void AppContext::initialize()
 
     dataCollector->initializeSensors();
 
-    moduleManager->initializeModules(dataCollector);
+    moduleManager->initializeModules(dataCollector, wifiService, activeMQService);
 
     diskManager->initialize();
 
@@ -38,14 +39,16 @@ void AppContext::initialize()
     Serial.println("Client ID: " + clientId);
     // diskManager->remove("ssid");
     // diskManager->remove("password");
-    ssid = "TI_EIXAME_TI_XASAME"; //diskManager->read("ssid");
-    password = "denkserw"; //diskManager->read("password");
-    brokerAddress = "mqtt://192.168.100.102:3011";
+    ssid = "TI_EIXAME_TI_XASAME"; // diskManager->read("ssid");
+    password = "denkserw";        // diskManager->read("password");
+
+    // Build broker address from config.h settings
+    brokerAddress = String("mqtt://") + MQTT_BROKER_HOST + ":" + String(MQTT_BROKER_PORT);
     if (ssid.length() > 0 && password.length() > 0)
     {
         Serial.println("Credentials found, connecting to WiFi...");
         wifiService->connectToWiFi(ssid.c_str(), password.c_str());
-        activeMQService->initialize(brokerAddress.c_str(), 3011, clientId.c_str());
+        activeMQService->initialize(MQTT_BROKER_HOST, MQTT_BROKER_PORT, clientId.c_str());
         activeMQService->subscribe("pump-on");
         activeMQService->subscribe("pump-off");
         activeMQService->subscribe("air-pump-on");
@@ -56,11 +59,12 @@ void AppContext::initialize()
         activeMQService->subscribe("set-sensor-poll-interval");
         activeMQService->subscribe("close-lcd");
         activeMQService->subscribe("open-lcd");
+        activeMQService->subscribe("time-sync");
     }
     else
     {
         Serial.println("No credentials found, turning to Access Point mode...");
-        wifiService->turnToAccessPointMode("ESP8266", "12345678");
+        wifiService->turnToAccessPointMode(AP_SSID, AP_PASSWORD);
         webServerService->begin();
     }
 }
@@ -78,8 +82,9 @@ void AppContext::loop()
     }
     if (!activeMQService->isConnected())
     {
-        activeMQService->initialize(brokerAddress.c_str(), 3011, clientId.c_str());
+        activeMQService->initialize(MQTT_BROKER_HOST, MQTT_BROKER_PORT, clientId.c_str());
     }
+
     activeMQService->loop();
     while (activeMQService->hasMessage())
     {
@@ -141,6 +146,20 @@ void AppContext::loop()
             moduleManager->lcd->setPower(true);
             activeMQService->publish("lcd-status", response);
         }
+        else if (topic == "time-sync")
+        {
+            // Parse JSON: {"time": "14:30:45", "date": "20/10/2025"}
+            JsonDocument doc;
+            DeserializationError error = deserializeJson(doc, message.message);
+
+            if (!error && doc.containsKey("time") && doc.containsKey("date"))
+            {
+                String time = doc["time"].as<String>();
+                String date = doc["date"].as<String>();
+                moduleManager->lcd->setTime(time, date);
+                Serial.println("Time synced: " + time + " " + date);
+            }
+        }
 
         Serial.println("Message received: " + message.topic + " - " + message.message);
     }
@@ -148,14 +167,13 @@ void AppContext::loop()
     if (sensorPollTimer.canRun())
     {
         auto data = dataCollector->collectData();
-
         // moduleManager->lcd->update();
     }
 
     if (lcdUpdateTimer.canRun())
     {
-        // moduleManager->lcd->update("Sensor Data");
-        moduleManager->lcd->displaySensorData();
+        // Update carousel to cycle through pages
+        moduleManager->lcd->updateCarousel();
     }
 
     if (dataSendTimer.canRun())
@@ -163,6 +181,7 @@ void AppContext::loop()
 
         if (dataCollector->currentData.size() > 0)
         {
+
             JsonDocument jsonDoc;
             jsonDoc["client-id"] = clientId;
             for (const auto &entry : dataCollector->currentData)
@@ -172,6 +191,7 @@ void AppContext::loop()
             serializeJson(jsonDoc, Serial);
             // deserializeJson(jsonDoc, "{\"temperature\": 25.0, \"humidity\": 50.0, \"ph\": 7.0, \"tds\": 100.0}");
             activeMQService->publish("sensor-data", jsonDoc);
+            Serial.println(jsonDoc.overflowed());
         }
     }
 }

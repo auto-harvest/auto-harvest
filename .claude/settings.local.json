@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install --save-dev @types/node-cron)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(yarn nx show project report-server --json)",
+      "Bash(usbip list -l)",
+      "Read(//dev/**)",
+      "Bash(dmesg)",
+      "Read(//tmp/**)",
+      "Bash(find /home/meme-machine/Documents/GitHub/auto-harvest -name \"package.json\" -not -path \"*/node_modules/*\" -exec grep -l \"chart\\|graph\\|canvas\" {} ;)",
+      "Read(//home/meme-machine/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

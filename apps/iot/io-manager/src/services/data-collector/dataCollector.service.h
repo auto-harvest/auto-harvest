@@ -26,6 +26,7 @@ public:
     std::map<std::string, double> collectData();
     static DataCollector *getInstance();
     void printData(const std::map<std::string, double> data);
+    String getStatus();
     std::map<std::string, double> currentData;
 
     std::map<std::string, double> previousData;
@@ -34,6 +35,7 @@ public:
 private:
     static DataCollector *instance;
     std::vector<AbstractSensor *> sensors;
+    String status;
 };
 
 #endif // DATA_COLLECTOR_SERVICE_H

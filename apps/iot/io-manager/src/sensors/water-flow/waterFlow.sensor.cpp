@@ -3,7 +3,7 @@
 WaterFlowSensor *WaterFlowSensor::instance = nullptr;
 
 WaterFlowSensor::WaterFlowSensor(uint8_t pin)
-    : pulses(0), lastPulseTime(0), flowRate(0), pin(pin)
+    : pulses(0), lastPulseTime(0), lastInterruptTime(0), flowRate(0), pin(pin)
 {
     instance = this;
 }
@@ -17,17 +17,17 @@ WaterFlowSensor::~WaterFlowSensor()
 void WaterFlowSensor::initialize()
 {
     pinMode(pin, INPUT);
-    attachInterrupt(digitalPinToInterrupt(pin), flowSensorISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(pin), flowISR, FALLING);
     Serial.println("Flow sensor initialized");
 }
 
 std::map<std::string, double> WaterFlowSensor::readData()
 {
-    noInterrupts(); // Ensure consistent data access
+    std::map<std::string, double> data;
+
     float currentFlowRate = flowRate;
     uint16_t currentPulses = pulses;
     unsigned long timeSinceLastPulse = millis() - lastPulseTime;
-    interrupts();
 
     // Reset flow rate if no pulse detected in the last 1 second
     if (timeSinceLastPulse > 1000)
@@ -38,11 +38,10 @@ std::map<std::string, double> WaterFlowSensor::readData()
     // Calculate total liters
     float liters = currentPulses / (7.5 * 60.0);
 
-    std::map<std::string, double> data;
-    data["flow-rate-hz"] = currentFlowRate;
-    data["pulses"] = currentPulses;
-    data["flow-rate-liters"] = liters;
-    data["liters-per-minute"] = currentFlowRate * 60.0;
+    // data["flow-rate-hz"] = currentFlowRate;
+    // data["pulses"] = currentPulses;
+    // data["flow-rate-liters"] = liters;
+    data["lpm"] = currentFlowRate; // flowRate is already in L/min from ISR
     return data;
 }
 
@@ -56,18 +55,35 @@ const char *WaterFlowSensor::getSensorName()
     return "YF-S201";
 }
 
-void WaterFlowSensor::flowSensorISR()
+void WaterFlowSensor::flowISR()
 {
-    unsigned long currentTime = millis();
-
-    // Calculate time between pulses
-    unsigned long elapsedTime = currentTime - instance->lastPulseTime;
-
-    if (elapsedTime > 0)
+    // NULL check to prevent crashes
+    if (instance == nullptr)
     {
-        instance->flowRate = 1000.0 / elapsedTime; // Hz (pulses per second)
+        return;
     }
 
+    unsigned long currentTime = millis();
+
+    // Debounce: ignore pulses within 10ms of each other
+    if (currentTime - instance->lastInterruptTime < 10)
+    {
+        return;
+    }
+
+    instance->lastInterruptTime = currentTime;
     instance->pulses++;
+
+    // Calculate flow rate based on pulse frequency
+    // Time between pulses in seconds
+    float timeDiff = (currentTime - instance->lastPulseTime) / 1000.0;
+
+    if (timeDiff > 0)
+    {
+        // YF-S201: Flow rate (L/min) = Frequency (Hz) / 7.5
+        // Optimized: 1/timeDiff/7.5 = 1/(timeDiff*7.5) = 0.1333.../timeDiff
+        instance->flowRate = 0.13333333f / timeDiff;
+    }
+
     instance->lastPulseTime = currentTime;
 }

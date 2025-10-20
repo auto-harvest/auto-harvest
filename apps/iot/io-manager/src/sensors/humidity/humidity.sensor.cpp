@@ -28,8 +28,8 @@ std::map<std::string, double> DHT11Sensor::readData()
         return data;
     }
 
-    data["temperature"] = temperature;
-    data["humidity"] = humidity;
+    data["t"] = temperature;
+    data["h"] = humidity;
     return data;
 }
 

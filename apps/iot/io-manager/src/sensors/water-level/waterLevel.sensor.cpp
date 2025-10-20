@@ -19,7 +19,7 @@ void WaterLevelSensor::initialize()
 std::map<std::string, double> WaterLevelSensor::readData()
 {
     std::map<std::string, double> data;
-    data["water-level"] = waterLevelIs();
+    data["wl"] = waterLevelIs();
     return data;
 }
 

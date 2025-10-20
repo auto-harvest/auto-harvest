@@ -1,21 +1,24 @@
 #include "wifiManager.service.h"
 
-WiFiService::WiFiService() {}
+WiFiService::WiFiService() : status("Initializing") {}
 
 String WiFiService::begin()
 {
     Serial1.begin(115200);
+    status = "Initializing";
     do
     {
         WiFi.init(&Serial1); // Initialize the WiFi module with the Serial1 interface
         if (WiFi.status() == WL_NO_SHIELD)
         {
             Serial.println("WiFi shield not present");
+            status = "No Shield";
             delay(1000);
         }
     } while (WiFi.status() == WL_NO_SHIELD);
 
     WiFi.disconnect();
+    status = "Ready";
     return getMacAddress();
 }
 
@@ -55,6 +58,7 @@ void WiFiService::turnToAccessPointMode(const char *ssid, const char *password)
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
     this->mode = "ap";
+    this->status = "AP Mode";
     Serial.print("SSID: ");
     Serial.println(WiFi.SSID());
 
@@ -70,6 +74,7 @@ void WiFiService::turnToNormalMode()
     WiFi.disconnect();
     Serial.println("Normal Mode");
     this->mode = "client";
+    this->status = "Disconnected";
     // close access point
     WiFi.softAPdisconnect();
 }
@@ -79,6 +84,7 @@ void WiFiService::connectToWiFi(const char *ssid, const char *password)
     WiFi.begin(ssid, password);
     Serial.print("Connecting to ");
     Serial.println(ssid);
+    this->status = "Connecting";
 
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -88,6 +94,7 @@ void WiFiService::connectToWiFi(const char *ssid, const char *password)
 
     Serial.println("");
     this->mode = "client";
+    this->status = "Connected";
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
@@ -109,4 +116,9 @@ String WiFiService::getMacAddress()
     Serial.print("MAC Address: ");
     Serial.println(macStr);
     return macStr;
+}
+
+String WiFiService::getStatus()
+{
+    return status;
 }

@@ -11,13 +11,16 @@
 #include "modules/wifi/wifi.module.h"
 #include "modules/air-pump/air-pump.module.h"
 #include "services/data-collector/dataCollector.service.h"
+#include "services/wifi-manager/wifiManager.service.h"
+#include "services/activeMQ-client/activeMQ-client.service.h"
 class ModuleManager
 {
 public:
     ModuleManager();
     ~ModuleManager();
 
-    void initializeModules(DataCollector *dataCollector);
+    void initializeModules(DataCollector *dataCollector, WiFiService *wifiService, ActiveMQClientService *mqttService = nullptr);
+    void setMqttService(ActiveMQClientService *mqttService);
 
     // Public references to all modules
     PumpModule *waterPump;

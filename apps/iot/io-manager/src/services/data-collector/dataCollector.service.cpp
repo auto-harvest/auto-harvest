@@ -4,7 +4,7 @@
 #include "context/app.context.h"
 DataCollector *DataCollector::instance = nullptr;
 
-DataCollector::DataCollector()
+DataCollector::DataCollector() : status("Not Initialized")
 {
     // Add sensors to the vector
 
@@ -24,6 +24,7 @@ DataCollector::~DataCollector()
 
 void DataCollector::initializeSensors()
 {
+    status = "Initializing";
     auto waterTempSensor = new WaterTemperatureSensor(17); //  DS18B20 is connected to pin 17
     auto phSensor = new PHSensor(A6, *waterTempSensor);
     sensors.push_back(waterTempSensor);
@@ -38,6 +39,7 @@ void DataCollector::initializeSensors()
         sensor->initialize();
         delay(100);
     }
+    status = "Active";
 }
 
 std::map<std::string, double> DataCollector::collectData()
@@ -53,19 +55,9 @@ std::map<std::string, double> DataCollector::collectData()
     }
     // app context module manager
     AppContext &appContext = AppContext::getInstance();
-    data["air-pump"] = (std::string(appContext.moduleManager->airPump->getStatus()) == "On" ? 1.0 : 0.0);
-    data["water-pump"] = (std::string(appContext.moduleManager->waterPump->getStatus()) == "On" ? 1.0 : 0.0);
-    // to lowercase
-    for (auto &entry : data)
-    {
-        std::string key = entry.first;
-        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-        if (key != entry.first)
-        {
-            data[key] = entry.second;
-            data.erase(entry.first);
-        }
-    }
+    data["ap"] = (std::string(appContext.moduleManager->airPump->getStatus()) == "On" ? 1.0 : 0.0);
+    data["wp"] = (std::string(appContext.moduleManager->waterPump->getStatus()) == "On" ? 1.0 : 0.0);
+
     previousData = currentData;
     currentData = data;
     return data;
@@ -79,4 +71,9 @@ void DataCollector::printData(const std::map<std::string, double> data)
         Serial.print(": ");
         Serial.println(entry.second);
     }
+}
+
+String DataCollector::getStatus()
+{
+    return status;
 }

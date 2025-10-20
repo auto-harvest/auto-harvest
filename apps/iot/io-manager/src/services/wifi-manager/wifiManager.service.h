@@ -15,7 +15,11 @@ public:
     void turnToNormalMode();
     void connectToWiFi(const char *ssid, const char *password);
     String getMacAddress();
+    String getStatus();
     String mode;
+
+private:
+    String status;
 };
 
 #endif // WIFI_SERVICE_H

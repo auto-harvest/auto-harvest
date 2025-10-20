@@ -37,10 +37,7 @@ float PHSensor::readPH()
     float rawPh = slope * ((voltage - 1500.0) / tempSlope) + intercept; // y = mx + b
 
     // Debugging information
-    Serial.print("Voltage: ");
-    Serial.println(voltage);
-    Serial.print("Ph: ");
-    Serial.println(rawPh);
+
     // Serial.print("Temperature: ");
     // Serial.println(temperature);
     // Serial.print("Slope: ");

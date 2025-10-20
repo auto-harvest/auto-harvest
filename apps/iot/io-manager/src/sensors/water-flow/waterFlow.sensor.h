@@ -5,6 +5,7 @@
 #include <string>
 #include <Arduino.h>
 #include "sensor.abstract.class.h"
+
 class WaterFlowSensor : public AbstractSensor
 {
 public:
@@ -20,13 +21,11 @@ public:
 
     // Shared variables between ISR and main code
     volatile uint16_t pulses;
-    volatile uint32_t lastFlowRateTimer;
+    volatile unsigned long lastPulseTime;
+    volatile unsigned long lastInterruptTime; // For debouncing
     volatile float flowRate;
-    volatile uint8_t lastFlowPinState;
-    volatile long lastPulseTime;
     static WaterFlowSensor *instance; // For static ISR access
-    void useInterrupt(boolean v);     // Interrupt handler+
-    static void flowSensorISR();      // Interrupt service routine
+    static void flowISR(); // Pin change ISR (simple, fast, no millis())
 };
 
 #endif // WATERFLOW_SENSOR_H

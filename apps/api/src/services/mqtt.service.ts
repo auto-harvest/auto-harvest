@@ -5,26 +5,29 @@ import { io } from './io.service';
 import CollectorService from './collector.service';
 
 // Sensor validation ranges
-const SENSOR_VALIDATION_RANGES: Record<string, { min: number; max: number; allowZero?: boolean }> = {
+const SENSOR_VALIDATION_RANGES: Record<
+  string,
+  { min: number; max: number; allowZero?: boolean }
+> = {
   // pH sensors (both uppercase and lowercase variants)
-  'pH': { min: 0, max: 14 },
-  'ph': { min: 0, max: 14 },
+  pH: { min: 0, max: 14 },
+  ph: { min: 0, max: 14 },
 
   // EC/TDS sensors
-  'ec': { min: 0.1, max: 10000 }, // EC in µS/cm, should be positive
-  'tds': { min: 0.1, max: 5000 }, // TDS (Total Dissolved Solids) in ppm
+  ec: { min: 0.1, max: 10000 }, // EC in µS/cm, should be positive
+  tds: { min: 0.1, max: 5000 }, // TDS (Total Dissolved Solids) in ppm
 
   // Temperature sensors
-  'temp': { min: -10, max: 60 }, // Air temperature in Celsius
+  temp: { min: -10, max: 60 }, // Air temperature in Celsius
   'water-temperature': { min: 0, max: 50 }, // Water temperature in Celsius
 
   // Humidity
-  'hum': { min: 1, max: 100 }, // Humidity percentage (0 indicates sensor not connected)
+  hum: { min: 1, max: 100 }, // Humidity percentage (0 indicates sensor not connected)
 
   // Flow sensors
-  'flow': { min: 0, max: 1000, allowZero: true }, // Flow rate, can be 0 when no flow
-  'pulses': { min: 0, max: 1000000, allowZero: true }, // Flow pulses counter
-
+  flow: { min: 0, max: 1000, allowZero: true }, // Flow rate, can be 0 when no flow
+  pulses: { min: 0, max: 1000000, allowZero: true }, // Flow pulses counter
+  'liters-per-minute': { min: 0, max: 1000, allowZero: true }, // Flow rate in L/min
   // Level and pump states
   'water-level': { min: 0, max: 100, allowZero: true }, // Water level percentage (0 = empty is valid)
   'water-pump': { min: 0, max: 1, allowZero: true }, // Pump state (0 = off, 1 = on)
@@ -73,6 +76,8 @@ export let lastLogs: any = {};
 const collectorService = new CollectorService();
 // Connect to the MQTT broker
 export let client: MqttClient;
+let timeSyncInterval: NodeJS.Timeout | null = null;
+
 export const sendMessage = (topic: string, message: string) => {
   if (client && client.connected) {
     client.publish(topic, message);
@@ -80,9 +85,74 @@ export const sendMessage = (topic: string, message: string) => {
     console.error('MQTT client is not connected.');
   }
 };
+
+/**
+ * Start periodic time sync to Arduino devices
+ * Sends Athens timezone time every 60 seconds via MQTT
+ */
+const startTimeSync = () => {
+  // Clear any existing interval
+  if (timeSyncInterval) {
+    clearInterval(timeSyncInterval);
+  }
+
+  // Send initial time immediately
+  const sendAthensTime = () => {
+    try {
+      // Get current time in Athens timezone
+      const now = new Date();
+
+      // Format time as HH:MM:SS
+      const timeStr = now.toLocaleString('en-US', {
+        timeZone: 'Europe/Athens',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+
+      // Format date as DD/MM/YYYY
+      const dateStr = now.toLocaleString('en-GB', {
+        timeZone: 'Europe/Athens',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      // Send as JSON: {"time": "14:30:45", "date": "20/10/2025"}
+      const payload = JSON.stringify({ time: timeStr, date: dateStr });
+      sendMessage('time-sync', payload);
+
+      console.log(`⏰ Sent Athens time: ${timeStr} ${dateStr}`);
+    } catch (error) {
+      console.error('Error sending time sync:', error);
+    }
+  };
+
+  // Send immediately on start
+  sendAthensTime();
+
+  // Then send every 60 seconds
+  timeSyncInterval = setInterval(sendAthensTime, 60000);
+  console.log('✅ Time sync started - sending Athens time every 60 seconds');
+};
+
+/**
+ * Stop time sync interval
+ */
+const stopTimeSync = () => {
+  if (timeSyncInterval) {
+    clearInterval(timeSyncInterval);
+    timeSyncInterval = null;
+    console.log('⏸️  Time sync stopped');
+  }
+};
+
 export const startMqttClient = () => {
   // Generate unique client ID for each instance
-  const uniqueClientId = `autoharvest-api-${process.env.INSTANCE_ID || Math.random().toString(16).slice(2, 10)}`;
+  const uniqueClientId = `autoharvest-api-${
+    process.env.INSTANCE_ID || Math.random().toString(16).slice(2, 10)
+  }`;
 
   console.log('Connecting to MQTT broker:', mqttConfig.brokerURL);
   console.log('Client ID:', uniqueClientId);
@@ -98,7 +168,9 @@ export const startMqttClient = () => {
     clean: true, // Clean session
   });
   client.on('connect', () => {
-    console.log(`✅ Connected to MQTT broker with client ID: ${uniqueClientId}`);
+    console.log(
+      `✅ Connected to MQTT broker with client ID: ${uniqueClientId}`
+    );
 
     // Subscribe with QoS 1 for reliable delivery
     client.subscribe(mqttConfig.topic, { qos: 1 }, (err) => {
@@ -108,6 +180,9 @@ export const startMqttClient = () => {
         console.log(`✅ Subscribed to topic: ${mqttConfig.topic} with QoS 1`);
       }
     });
+
+    // Start time sync to Arduino devices
+    startTimeSync();
   });
 
   client.on('reconnect', () => {
@@ -120,6 +195,7 @@ export const startMqttClient = () => {
 
   client.on('offline', () => {
     console.warn('⚠️  MQTT client is offline');
+    stopTimeSync(); // Stop time sync when offline
   });
 
   // Create an observable from MQTT messages
@@ -140,7 +216,7 @@ export const startMqttClient = () => {
         const clientId = sensorData['client-id'];
 
         if (!clientId) {
-          console.error('Received sensor data without client-id'); 
+          console.error('Received sensor data without client-id');
           return [];
         }
 
@@ -148,8 +224,19 @@ export const startMqttClient = () => {
         delete sensorData['client-id'];
         delete sensorData['flow-rate-hz'];
         delete sensorData['flow-rate-liters'];
-        delete sensorData['liters-per-minute'];
-
+        sensorData['liters-per-minute'] = sensorData['lpm'];
+        // delete sensorData['liters-per-minute'];
+        sensorData['air-pump'] = sensorData['ap'];
+        sensorData['water-pump'] = sensorData['wp'];
+        sensorData['water-level'] = sensorData['wl'];
+        sensorData['water-temperature'] = sensorData['wt'];
+        sensorData['humidity'] = sensorData['h'];
+        sensorData['temperature'] = sensorData['t'];
+        delete sensorData['wl'];
+        delete sensorData['wt'];
+        delete sensorData['ap'];
+        delete sensorData['wp'];
+        delete sensorData['lpm'];
         // Validate and filter sensor data
         const validatedData: Record<string, number> = {};
         const invalidData: Record<string, number> = {};
@@ -160,13 +247,28 @@ export const startMqttClient = () => {
             validatedData[key] = value;
           } else {
             invalidData[key] = value;
-            console.warn(`Invalid sensor value detected for controller ${clientId}: ${key}=${value} (out of acceptable range)`);
+            console.warn(
+              `Invalid sensor value detected for controller ${clientId}: ${key}=${value} (out of acceptable range)`
+            );
           }
         }
-
+        const vpd = vpdKPa({
+          airTempC: validatedData['temperature'],
+          rhPct: validatedData['humidity'],
+        });
+        if (!isNaN(vpd)) {
+          validatedData['vpd'] = parseFloat(vpd.toFixed(2));
+        } else {
+          console.warn(
+            `Could not calculate VPD for controller ${clientId} due to missing or invalid temperature/humidity data.`
+          );
+        }
         // If no valid data, skip broadcasting and storage
         if (Object.keys(validatedData).length === 0) {
-          console.warn(`No valid sensor data received from controller ${clientId}. All values invalid:`, invalidData);
+          console.warn(
+            `No valid sensor data received from controller ${clientId}. All values invalid:`,
+            invalidData
+          );
           return [];
         }
 
@@ -175,10 +277,15 @@ export const startMqttClient = () => {
 
         // Broadcast only validated sensor data to connected users
         if (!io) {
-          console.error('Socket.io not initialized, cannot broadcast sensor data');
+          console.error(
+            'Socket.io not initialized, cannot broadcast sensor data'
+          );
         } else {
           const roomName = `controller:${clientId}`;
-          console.log(`Broadcasting validated sensor data to room: ${roomName}`, validatedData);
+          console.log(
+            `Broadcasting validated sensor data to room: ${roomName}`,
+            validatedData
+          );
           if (Object.keys(invalidData).length > 0) {
             console.log(`Filtered out invalid values:`, invalidData);
           }

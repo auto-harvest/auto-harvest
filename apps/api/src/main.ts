@@ -17,11 +17,10 @@ import { startIo } from './services/io.service';
 import { lastLogs, startMqttClient } from './services/mqtt.service';
 import { routes } from './routes/routes';
 import { environment } from './environment/environment';
-import CollectorService from './services/collector.service';
 
 // --- Setup express app ---
 const app = express();
-
+ 
 app.use(morgan('dev'));
 app.use((req, res, next) => {
   console.log('Request:', req.method, req.url);
@@ -55,16 +54,15 @@ export const server = app.listen(+port, '0.0.0.0', null, () => {
   console.log(`Listening at http://localhost:${port}/api`);
 });
 // --- Connect to MongoDB ---
-const connectionString = `mongodb://admin:root@localhost:27017`;
+const connectionString = `mongodb://myuser:mypassword@192.168.100.102:27017`;
 
 mongoose
   .connect(connectionString, {
     dbName: environment.production ? 'auto-harvest' : 'dev-auto-harvest',
   })
-  .then(async () => {
+  .then(() => { 
     console.log('Database connected successfully');
-    const collector = new CollectorService();
-    await collector.backfillAll();
+    // CollectorService is instantiated when needed via MQTT service
   })
   .catch((err) => console.error('MongoDB connection error:', err));
  
