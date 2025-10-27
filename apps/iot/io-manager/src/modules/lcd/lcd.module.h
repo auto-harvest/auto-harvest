@@ -58,7 +58,7 @@ private:
     String currentTime = "--:--:--";
     String currentDate = "--/--/----";
 
-    int getPageCount() const { return 8; } // 8 pages in carousel
+    int getPageCount() const { return 7; } // 7 pages in carousel
     String getWiFiStatus();
     String centerText(String text, int width);
 };

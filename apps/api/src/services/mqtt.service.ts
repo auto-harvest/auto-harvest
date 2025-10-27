@@ -29,7 +29,7 @@ const SENSOR_VALIDATION_RANGES: Record<
   pulses: { min: 0, max: 1000000, allowZero: true }, // Flow pulses counter
   'liters-per-minute': { min: 0, max: 1000, allowZero: true }, // Flow rate in L/min
   // Level and pump states
-  'water-level': { min: 0, max: 100, allowZero: true }, // Water level percentage (0 = empty is valid)
+  'water-level': { min: -1, max: 1, allowZero: true }, // Water level percentage (0 = empty is valid)
   'water-pump': { min: 0, max: 1, allowZero: true }, // Pump state (0 = off, 1 = on)
   'air-pump': { min: 0, max: 1, allowZero: true }, // Air pump state (0 = off, 1 = on)
 };
@@ -108,7 +108,7 @@ const startTimeSync = () => {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false
+        hour12: false,
       });
 
       // Format date as DD/MM/YYYY
@@ -116,7 +116,7 @@ const startTimeSync = () => {
         timeZone: 'Europe/Athens',
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric'
+        year: 'numeric',
       });
 
       // Send as JSON: {"time": "14:30:45", "date": "20/10/2025"}
@@ -211,6 +211,7 @@ export const startMqttClient = () => {
   messageStream$
     .pipe(
       map(({ message }) => JSON.parse(message)), // Parse the message as JSON
+    
       mergeMap(async (sensorData: any) => {
         // Validate and process the message
         const clientId = sensorData['client-id'];
@@ -243,13 +244,15 @@ export const startMqttClient = () => {
 
         for (const key in sensorData) {
           const value = sensorData[key];
-          if (isValidSensorValue(key, value)) {
-            validatedData[key] = value;
-          } else {
-            invalidData[key] = value;
-            console.warn(
-              `Invalid sensor value detected for controller ${clientId}: ${key}=${value} (out of acceptable range)`
-            );
+          if (typeof value === 'number' && !isNaN(value)) {
+            if (isValidSensorValue(key, value)) {
+              validatedData[key] = value;
+            } else {
+              invalidData[key] = value;
+              console.warn(
+                `Invalid sensor value detected for controller ${clientId}: ${key}=${value} (out of acceptable range)`
+              );
+            }
           }
         }
         const vpd = vpdKPa({

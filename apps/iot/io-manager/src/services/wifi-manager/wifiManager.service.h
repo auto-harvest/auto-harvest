@@ -17,9 +17,9 @@ public:
     String getMacAddress();
     String getStatus();
     String mode;
+    bool connectToHost(const char *hostname, uint16_t port, IPAddress fallbackIP, WiFiClient &client);
 
-private:
-    String status;
+    private : String status;
 };
 
 #endif // WIFI_SERVICE_H

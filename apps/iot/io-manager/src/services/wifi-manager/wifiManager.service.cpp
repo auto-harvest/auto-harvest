@@ -82,6 +82,7 @@ void WiFiService::turnToNormalMode()
 void WiFiService::connectToWiFi(const char *ssid, const char *password)
 {
     WiFi.begin(ssid, password);
+
     Serial.print("Connecting to ");
     Serial.println(ssid);
     this->status = "Connecting";
@@ -121,4 +122,35 @@ String WiFiService::getMacAddress()
 String WiFiService::getStatus()
 {
     return status;
+}
+bool WiFiService::connectToHost(const char *hostname, uint16_t port, IPAddress fallbackIP, WiFiClient &client)
+{
+    IPAddress serverIP;
+    Serial.print("Resolving hostname: ");
+    Serial.println(hostname);
+
+    if (WiFi.hostByName(hostname, serverIP))
+    {
+        Serial.print("DNS resolved: ");
+        Serial.println(serverIP);
+    }
+    else
+    {
+        Serial.println("DNS failed. Using fallback IP.");
+        serverIP = fallbackIP; // <- optional fallback
+    }
+
+    Serial.print("Connecting to server: ");
+    Serial.println(serverIP);
+
+    if (client.connect(serverIP, port))
+    {
+        Serial.println("Connected to server!");
+        return true;
+    }
+    else
+    {
+        Serial.println("Connection failed!");
+        return false;
+    }
 }

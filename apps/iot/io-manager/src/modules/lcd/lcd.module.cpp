@@ -104,13 +104,11 @@ void LCDModule::displayPage(int pageIndex)
     case 4: // Uptime
         displayUptime();
         break;
-    case 5: // Device status
-        displayDeviceStatus();
-        break;
-    case 6: // Date and Time
+
+    case 5: // Date and Time
         displayDateTime();
         break;
-    case 7: // Service statuses
+    case 6: // Service statuses
         displayServiceStatus();
         break;
     }
@@ -185,15 +183,7 @@ void LCDModule::displayUptime()
     screen->send_string(uptimeString.c_str());
 }
 
-// Page 5: Device Status
-void LCDModule::displayDeviceStatus()
-{
-    screen->setCursor(0, 0);
-    screen->send_string("Status");
 
-    screen->setCursor(0, 1);
-    screen->send_string(status.c_str());
-}
 
 // Page 6: Date and Time
 void LCDModule::displayDateTime()

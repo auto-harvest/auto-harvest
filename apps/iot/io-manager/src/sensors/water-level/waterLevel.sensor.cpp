@@ -18,6 +18,8 @@ void WaterLevelSensor::initialize()
 
 std::map<std::string, double> WaterLevelSensor::readData()
 {
+    Serial.println(digitalRead(lowPin) == HIGH);
+    Serial.println(digitalRead(highPin) == HIGH);
     std::map<std::string, double> data;
     data["wl"] = waterLevelIs();
     return data;
